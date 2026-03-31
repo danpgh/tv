@@ -64,7 +64,9 @@
     .guide-show { color: #e1e8ff; line-height:1.35; }
     .player-head { display:flex; justify-content:space-between; gap:10px; align-items:center; padding:8px 10px; }
     .player-title { margin:0; font-size:.95rem; }
+    .player-right { display:flex; align-items:center; gap:8px; }
     .player-meta { color:var(--muted); font-size:.82rem; }
+    .player-fs-btn { min-height:30px; padding:5px 10px; font-size:.74rem; font-weight:600; }
     .player-wrap {
       border-top:1px solid var(--border);
       overflow:hidden;
@@ -150,7 +152,10 @@
     <section class="player" id="playerPanel">
       <div class="player-head">
         <h2 class="player-title" id="playerTitle">Selecteaza un canal</h2>
-        <div class="player-meta" id="playerMeta">Preview live</div>
+        <div class="player-right">
+          <div class="player-meta" id="playerMeta">Preview live</div>
+          <button id="playerFullscreenBtn" class="player-fs-btn" type="button">⛶ Fullscreen</button>
+        </div>
       </div>
       <div class="player-wrap">
         <iframe id="playerFrame" class="player-frame" title="IPTV Preview" allow="autoplay; fullscreen" allowfullscreen webkitallowfullscreen mozallowfullscreen loading="eager"></iframe>
@@ -344,6 +349,7 @@
       playerFrame: document.getElementById('playerFrame'),
       playerTitle: document.getElementById('playerTitle'),
       playerMeta: document.getElementById('playerMeta'),
+      playerFullscreenBtn: document.getElementById('playerFullscreenBtn'),
       guideList: document.getElementById('guideList'),
       guideStatus: document.getElementById('guideStatus'),
       playerPanel: document.getElementById('playerPanel'),
@@ -866,6 +872,11 @@
     els.goToStream.addEventListener('click', () => focusPanel(els.playerPanel));
     els.goToProgram.addEventListener('click', () => focusPanel(els.tvGuide));
     els.downloadM3u.addEventListener('click', downloadM3u);
+    els.playerFullscreenBtn.addEventListener('click', async () => {
+      const fsElement = document.fullscreenElement || document.webkitFullscreenElement;
+      if (!fsElement) await (els.playerPanel.requestFullscreen?.() || els.playerPanel.webkitRequestFullscreen?.());
+      else await (document.exitFullscreen?.() || document.webkitExitFullscreen?.());
+    });
     document.getElementById('appVersion').textContent = `v${APP_VERSION}`;
     console.info(`IPTV Quick Grid version ${APP_VERSION}`);
     initCategories();
