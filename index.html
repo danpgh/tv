@@ -67,6 +67,7 @@
     .player-tools { display:flex; align-items:center; gap:8px; }
     .player-meta { color:var(--muted); font-size:.82rem; }
     .player-fs { min-height:30px; padding:5px 10px; font-size:.74rem; font-weight:700; }
+    .player-ch { min-height:30px; padding:5px 10px; font-size:.72rem; font-weight:700; }
     .player-wrap {
       position:relative;
       border-top:1px solid var(--border);
@@ -191,6 +192,8 @@
         <h2 class="player-title" id="playerTitle">Selecteaza un canal</h2>
         <div class="player-tools">
           <div class="player-meta" id="playerMeta">Preview live</div>
+          <button id="prevFavBtn" class="player-ch" type="button">CH-</button>
+          <button id="nextFavBtn" class="player-ch" type="button">CH+</button>
           <button id="playerFsBtn" class="player-fs" type="button">⛶ Fullscreen</button>
         </div>
       </div>
@@ -385,6 +388,8 @@
       goToProgram: document.getElementById('goToProgram'),
       playerFrame: document.getElementById('playerFrame'),
       fsExitLayer: document.getElementById('fsExitLayer'),
+      prevFavBtn: document.getElementById('prevFavBtn'),
+      nextFavBtn: document.getElementById('nextFavBtn'),
       playerFsBtn: document.getElementById('playerFsBtn'),
       playerTitle: document.getElementById('playerTitle'),
       playerMeta: document.getElementById('playerMeta'),
@@ -794,6 +799,19 @@
         .filter(c => !appState.favoritesOnly || isFavorite(c.name));
     }
 
+    function navigateFavorite(step) {
+      const favorites = orderedChannels().filter((c) => isFavorite(c.name));
+      if (!favorites.length) {
+        els.playerMeta.textContent = 'Nu ai canale favorite. Marcheaza canale cu ★.';
+        return;
+      }
+      const currentIndex = favorites.findIndex((c) => c.name === appState.playing);
+      const nextIndex = currentIndex === -1
+        ? 0
+        : (currentIndex + step + favorites.length) % favorites.length;
+      openStream(favorites[nextIndex]);
+    }
+
     function initialsForChannel(name) {
       const cleaned = String(name || '')
         .replace(/\b(HD|TV)\b/gi, '')
@@ -871,11 +889,13 @@
     async function toggleFullscreen() {
       const fsElement = document.fullscreenElement || document.webkitFullscreenElement;
       if (!fsElement) {
-        await (els.playerFrame.requestFullscreen?.() || els.playerFrame.webkitRequestFullscreen?.() || els.playerPanel.requestFullscreen?.() || els.playerPanel.webkitRequestFullscreen?.());
+        await (els.playerPanel.requestFullscreen?.() || els.playerPanel.webkitRequestFullscreen?.());
       } else {
         await (document.exitFullscreen?.() || document.webkitExitFullscreen?.());
       }
     }
+    els.prevFavBtn.addEventListener('click', () => navigateFavorite(-1));
+    els.nextFavBtn.addEventListener('click', () => navigateFavorite(1));
     els.playerFsBtn.addEventListener('click', toggleFullscreen);
     els.playerWrap.addEventListener('dblclick', toggleFullscreen);
     els.fsExitLayer.addEventListener('dblclick', async () => {
@@ -886,6 +906,11 @@
       const fsElement = document.fullscreenElement;
       const onPlayer = fsElement === els.playerPanel || fsElement === els.playerFrame;
       els.playerWrap.classList.toggle('fs-mode', onPlayer);
+    });
+    document.addEventListener('keydown', (e) => {
+      if (!document.fullscreenElement) return;
+      if (e.key === 'ArrowUp') { e.preventDefault(); navigateFavorite(-1); }
+      if (e.key === 'ArrowDown') { e.preventDefault(); navigateFavorite(1); }
     });
     document.getElementById('appVersion').textContent = `v${APP_VERSION}`;
     console.info(`IPTV Quick Grid version ${APP_VERSION}`);
