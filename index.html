@@ -80,8 +80,7 @@
     .player:fullscreen,
     .player:-webkit-full-screen,
     .player:-moz-full-screen,
-    .player:-ms-fullscreen,
-    .player.player-expanded {
+    .player:-ms-fullscreen {
       width:100vw !important;
       max-width:none !important;
       height:100vh;
@@ -98,8 +97,7 @@
     .player:fullscreen .player-wrap,
     .player:-webkit-full-screen .player-wrap,
     .player:-moz-full-screen .player-wrap,
-    .player:-ms-fullscreen .player-wrap,
-    .player.player-expanded .player-wrap {
+    .player:-ms-fullscreen .player-wrap {
       flex:1;
       width:100%;
       height:100%;
@@ -110,8 +108,7 @@
     .player:fullscreen .player-frame,
     .player:-webkit-full-screen .player-frame,
     .player:-moz-full-screen .player-frame,
-    .player:-ms-fullscreen .player-frame,
-    .player.player-expanded .player-frame {
+    .player:-ms-fullscreen .player-frame {
       width:100%;
       height:100%;
       display:block;
@@ -119,11 +116,18 @@
     .player:fullscreen .player-head,
     .player:-webkit-full-screen .player-head,
     .player:-moz-full-screen .player-head,
-    .player:-ms-fullscreen .player-head,
-    .player.player-expanded .player-head {
+    .player:-ms-fullscreen .player-head {
       display:flex;
       border-bottom:1px solid #1e2742;
       background:rgba(9,11,18,.96);
+    }
+    .player-frame:fullscreen,
+    .player-frame:-webkit-full-screen,
+    .player-frame:-moz-full-screen,
+    .player-frame:-ms-fullscreen {
+      width:100vw !important;
+      height:100vh !important;
+      background:#000;
     }
 
     .grid { display:grid; grid-template-columns:repeat(5,minmax(0,1fr)); gap:10px; }
@@ -262,7 +266,7 @@
   </script>
 
   <script>
-    const APP_VERSION = '2026-03-31.5';
+    const APP_VERSION = '2026-03-31.6';
     const channels = [
       {name:'PROTV HD',embed:'https://canale-tv.com/channel/pr0tv.html',category:'General',description:'Romanian general entertainment and news.'},
       {name:'A1 HD',embed:'https://canale-tv.com/channel/a1.html',category:'General',description:'Popular Romanian general TV content.'},
@@ -895,7 +899,8 @@
     els.goToStream.addEventListener('click', () => focusPanel(els.playerPanel));
     els.goToProgram.addEventListener('click', () => focusPanel(els.tvGuide));
     function isPlayerFullscreen() {
-      return els.playerPanel.classList.contains('player-expanded');
+      const fsElement = document.fullscreenElement || document.webkitFullscreenElement;
+      return fsElement === els.playerFrame || fsElement === els.playerPanel;
     }
 
     function syncFullscreenUi() {
@@ -905,7 +910,11 @@
     }
 
     async function toggleFullscreen() {
-      els.playerPanel.classList.toggle('player-expanded');
+      if (!isPlayerFullscreen()) {
+        await (els.playerFrame.requestFullscreen?.() || els.playerFrame.webkitRequestFullscreen?.() || els.playerPanel.requestFullscreen?.());
+      } else {
+        await (document.exitFullscreen?.() || document.webkitExitFullscreen?.());
+      }
       syncFullscreenUi();
     }
     els.prevFavBtn.addEventListener('click', () => navigateFavorite(-1));
@@ -914,14 +923,16 @@
     els.playerWrap.addEventListener('dblclick', toggleFullscreen);
     document.addEventListener('keydown', (e) => {
       if (e.key === 'Escape' && isPlayerFullscreen()) {
-        els.playerPanel.classList.remove('player-expanded');
-        syncFullscreenUi();
+        document.exitFullscreen?.();
+        document.webkitExitFullscreen?.();
         return;
       }
       if (!isPlayerFullscreen()) return;
       if (e.key === 'ArrowUp') { e.preventDefault(); navigateFavorite(-1); }
       if (e.key === 'ArrowDown') { e.preventDefault(); navigateFavorite(1); }
     });
+    document.addEventListener('fullscreenchange', syncFullscreenUi);
+    document.addEventListener('webkitfullscreenchange', syncFullscreenUi);
     document.getElementById('appVersion').textContent = `v${APP_VERSION}`;
     console.info(`IPTV Quick Grid version ${APP_VERSION}`);
     initCategories();
