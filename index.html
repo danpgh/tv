@@ -866,18 +866,6 @@
     els.goToStream.addEventListener('click', () => focusPanel(els.playerPanel));
     els.goToProgram.addEventListener('click', () => focusPanel(els.tvGuide));
     els.downloadM3u.addEventListener('click', downloadM3u);
-    async function toggleFullscreen() {
-      const target = els.playerPanel;
-      const fsElement = document.fullscreenElement || document.webkitFullscreenElement;
-      if (!fsElement) {
-        await (target.requestFullscreen?.() || target.webkitRequestFullscreen?.());
-      } else {
-        await (document.exitFullscreen?.() || document.webkitExitFullscreen?.());
-      }
-    }
-    els.playerPanel.addEventListener('dblclick', toggleFullscreen);
-    els.playerWrap.addEventListener('dblclick', toggleFullscreen);
-
     document.getElementById('appVersion').textContent = `v${APP_VERSION}`;
     console.info(`IPTV Quick Grid version ${APP_VERSION}`);
     initCategories();
