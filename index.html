@@ -68,6 +68,7 @@
     .player-meta { color:var(--muted); font-size:.82rem; }
     .player-fs { min-height:30px; padding:5px 10px; font-size:.74rem; font-weight:700; }
     .player-wrap {
+      position:relative;
       border-top:1px solid var(--border);
       overflow:hidden;
       background:#000;
@@ -75,6 +76,15 @@
       max-height: 420px;
     }
     .player-frame { width:100%; height:100%; border:0; background:#000; }
+    .fs-exit-layer {
+      display:none;
+      position:absolute;
+      inset:0;
+      z-index:5;
+      cursor:zoom-out;
+      background:transparent;
+    }
+    .player-wrap.fs-mode .fs-exit-layer { display:block; }
 
     .grid { display:grid; grid-template-columns:repeat(5,minmax(0,1fr)); gap:10px; }
     .card { background:var(--panel); border:1px solid var(--border); border-radius:12px; padding:8px; display:grid; gap:6px; min-height:96px; cursor:pointer; }
@@ -157,6 +167,7 @@
       </div>
       <div class="player-wrap">
         <iframe id="playerFrame" class="player-frame" title="IPTV Preview" allow="autoplay; fullscreen" allowfullscreen webkitallowfullscreen mozallowfullscreen loading="eager"></iframe>
+        <div id="fsExitLayer" class="fs-exit-layer" title="Dublu-click pentru iesire din fullscreen"></div>
       </div>
     </section>
 
@@ -344,6 +355,7 @@
       goToStream: document.getElementById('goToStream'),
       goToProgram: document.getElementById('goToProgram'),
       playerFrame: document.getElementById('playerFrame'),
+      fsExitLayer: document.getElementById('fsExitLayer'),
       playerFsBtn: document.getElementById('playerFsBtn'),
       playerTitle: document.getElementById('playerTitle'),
       playerMeta: document.getElementById('playerMeta'),
@@ -830,13 +842,20 @@
     async function toggleFullscreen() {
       const fsElement = document.fullscreenElement || document.webkitFullscreenElement;
       if (!fsElement) {
-        await (els.playerFrame.requestFullscreen?.() || els.playerPanel.requestFullscreen?.() || els.playerFrame.webkitRequestFullscreen?.() || els.playerPanel.webkitRequestFullscreen?.());
+        await (els.playerPanel.requestFullscreen?.() || els.playerPanel.webkitRequestFullscreen?.());
       } else {
         await (document.exitFullscreen?.() || document.webkitExitFullscreen?.());
       }
     }
     els.playerFsBtn.addEventListener('click', toggleFullscreen);
     els.playerWrap.addEventListener('dblclick', toggleFullscreen);
+    els.fsExitLayer.addEventListener('dblclick', async () => {
+      const fsElement = document.fullscreenElement || document.webkitFullscreenElement;
+      if (fsElement) await (document.exitFullscreen?.() || document.webkitExitFullscreen?.());
+    });
+    document.addEventListener('fullscreenchange', () => {
+      els.playerWrap.classList.toggle('fs-mode', !!document.fullscreenElement);
+    });
     document.getElementById('appVersion').textContent = `v${APP_VERSION}`;
     console.info(`IPTV Quick Grid version ${APP_VERSION}`);
     initCategories();
