@@ -871,7 +871,7 @@
     async function toggleFullscreen() {
       const fsElement = document.fullscreenElement || document.webkitFullscreenElement;
       if (!fsElement) {
-        await (els.playerPanel.requestFullscreen?.() || els.playerPanel.webkitRequestFullscreen?.());
+        await (els.playerFrame.requestFullscreen?.() || els.playerFrame.webkitRequestFullscreen?.() || els.playerPanel.requestFullscreen?.() || els.playerPanel.webkitRequestFullscreen?.());
       } else {
         await (document.exitFullscreen?.() || document.webkitExitFullscreen?.());
       }
@@ -883,7 +883,9 @@
       if (fsElement) await (document.exitFullscreen?.() || document.webkitExitFullscreen?.());
     });
     document.addEventListener('fullscreenchange', () => {
-      els.playerWrap.classList.toggle('fs-mode', !!document.fullscreenElement);
+      const fsElement = document.fullscreenElement;
+      const onPlayer = fsElement === els.playerPanel || fsElement === els.playerFrame;
+      els.playerWrap.classList.toggle('fs-mode', onPlayer);
     });
     document.getElementById('appVersion').textContent = `v${APP_VERSION}`;
     console.info(`IPTV Quick Grid version ${APP_VERSION}`);
