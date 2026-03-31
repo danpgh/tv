@@ -64,9 +64,7 @@
     .guide-show { color: #e1e8ff; line-height:1.35; }
     .player-head { display:flex; justify-content:space-between; gap:10px; align-items:center; padding:8px 10px; }
     .player-title { margin:0; font-size:.95rem; }
-    .player-right { display:flex; align-items:center; gap:8px; }
     .player-meta { color:var(--muted); font-size:.82rem; }
-    .player-fs-btn { min-height:30px; padding:5px 10px; font-size:.74rem; font-weight:600; }
     .player-wrap {
       border-top:1px solid var(--border);
       overflow:hidden;
@@ -102,7 +100,6 @@
     .desc { margin:0; font-size:.68rem; color:var(--muted); line-height:1.2; }
     .actions { display:flex; gap:5px; margin-top:auto; }
     .open { flex:1; background:linear-gradient(180deg,#5e79f5,#4a63cf); border-color:#4861ca; color:#f1f4ff; font-weight:600; font-size:.72rem; }
-    .download { min-width:90px; padding:0 8px; font-size:.72rem; font-weight:600; }
     .fav { width:32px; height:32px; padding:0; }
     .fav.active { color:var(--fav); border-color:var(--fav); }
     .empty { color:var(--muted); text-align:center; padding:20px 0; }
@@ -139,7 +136,6 @@
       <div class="quick-nav">
         <button id="goToStream" type="button">▶ Stream</button>
         <button id="goToProgram" type="button">📺 Program</button>
-        <button id="downloadM3u" type="button">⬇ Download M3U</button>
       </div>
       <div class="controls">
         <input id="searchInput" placeholder="Cauta post..." />
@@ -152,10 +148,7 @@
     <section class="player" id="playerPanel">
       <div class="player-head">
         <h2 class="player-title" id="playerTitle">Selecteaza un canal</h2>
-        <div class="player-right">
-          <div class="player-meta" id="playerMeta">Preview live</div>
-          <button id="playerFullscreenBtn" class="player-fs-btn" type="button">⛶ Fullscreen</button>
-        </div>
+        <div class="player-meta" id="playerMeta">Preview live</div>
       </div>
       <div class="player-wrap">
         <iframe id="playerFrame" class="player-frame" title="IPTV Preview" allow="autoplay; fullscreen" allowfullscreen webkitallowfullscreen mozallowfullscreen loading="eager"></iframe>
@@ -345,11 +338,9 @@
       showFav: document.getElementById('showFavorites'),
       goToStream: document.getElementById('goToStream'),
       goToProgram: document.getElementById('goToProgram'),
-      downloadM3u: document.getElementById('downloadM3u'),
       playerFrame: document.getElementById('playerFrame'),
       playerTitle: document.getElementById('playerTitle'),
       playerMeta: document.getElementById('playerMeta'),
-      playerFullscreenBtn: document.getElementById('playerFullscreenBtn'),
       guideList: document.getElementById('guideList'),
       guideStatus: document.getElementById('guideStatus'),
       playerPanel: document.getElementById('playerPanel'),
@@ -756,45 +747,6 @@
         .filter(c => !appState.favoritesOnly || isFavorite(c.name));
     }
 
-    function downloadM3u() {
-      const list = filteredChannels();
-      if (!list.length) return;
-      const lines = buildM3uLines(list);
-      const blob = new Blob([`${lines.join('\n')}\n`], { type: 'audio/x-mpegurl;charset=utf-8' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = 'iptv-quick-grid.m3u';
-      document.body.append(a);
-      a.click();
-      a.remove();
-      URL.revokeObjectURL(url);
-    }
-
-    function buildM3uLines(list) {
-      const lines = ['#EXTM3U'];
-      for (const ch of list) {
-        lines.push(`#EXTINF:-1 group-title="${ch.category}",${ch.name}`);
-        lines.push(ch.embed);
-      }
-      return lines;
-    }
-
-    function downloadChannel(channel) {
-      if (!channel) return;
-      const lines = buildM3uLines([channel]);
-      const safeName = channel.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') || 'canal';
-      const blob = new Blob([`${lines.join('\n')}\n`], { type: 'audio/x-mpegurl;charset=utf-8' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `${safeName}.m3u`;
-      document.body.append(a);
-      a.click();
-      a.remove();
-      URL.revokeObjectURL(url);
-    }
-
     function initialsForChannel(name) {
       const cleaned = String(name || '')
         .replace(/\b(HD|TV)\b/gi, '')
@@ -829,12 +781,10 @@
           <p class="desc">${c.description}</p>
           <div class="actions">
             <button class="open" type="button">▶ Open stream</button>
-            <button class="download" type="button" title="Download canal">⬇ Download</button>
             <button class="fav ${isFavorite(c.name) ? 'active' : ''}" type="button" title="Favorite">★</button>
           </div>
         `;
         card.querySelector('.open').addEventListener('click', (e) => { e.stopPropagation(); openStream(c); });
-        card.querySelector('.download').addEventListener('click', (e) => { e.stopPropagation(); downloadChannel(c); });
         card.addEventListener('click', () => openStream(c));
         card.querySelector('.fav').addEventListener('click', (e) => { e.stopPropagation(); toggleFavorite(c.name); });
         card.addEventListener('dragstart', (e) => {
@@ -871,12 +821,6 @@
     els.showFav.addEventListener('click', () => { appState.favoritesOnly = !appState.favoritesOnly; render(); });
     els.goToStream.addEventListener('click', () => focusPanel(els.playerPanel));
     els.goToProgram.addEventListener('click', () => focusPanel(els.tvGuide));
-    els.downloadM3u.addEventListener('click', downloadM3u);
-    els.playerFullscreenBtn.addEventListener('click', async () => {
-      const fsElement = document.fullscreenElement || document.webkitFullscreenElement;
-      if (!fsElement) await (els.playerPanel.requestFullscreen?.() || els.playerPanel.webkitRequestFullscreen?.());
-      else await (document.exitFullscreen?.() || document.webkitExitFullscreen?.());
-    });
     document.getElementById('appVersion').textContent = `v${APP_VERSION}`;
     console.info(`IPTV Quick Grid version ${APP_VERSION}`);
     initCategories();
