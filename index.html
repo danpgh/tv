@@ -81,6 +81,7 @@
     .player-title { margin:0; font-size:.95rem; }
     .player-meta { color:var(--muted); font-size:.82rem; }
     .player-wrap {
+      position:relative;
       border-top:1px solid var(--border);
       overflow:hidden;
       background:#000;
@@ -88,6 +89,25 @@
       max-height: 420px;
     }
     .player-frame { width:100%; height:100%; border:0; background:#000; }
+    .preview-fullscreen {
+      position:absolute;
+      right:10px;
+      bottom:10px;
+      width:34px;
+      height:34px;
+      border-radius:8px;
+      border:1px solid rgba(220,230,255,.45);
+      background:rgba(8,10,18,.7);
+      color:#eaf0ff;
+      font-size:1rem;
+      line-height:1;
+      display:grid;
+      place-items:center;
+      z-index:3;
+      cursor:pointer;
+      backdrop-filter:blur(1px);
+    }
+    .preview-fullscreen:hover { background:rgba(16,22,40,.85); }
 
     .grid { display:grid; grid-template-columns:repeat(5,minmax(0,1fr)); gap:10px; }
     .card { background:var(--panel); border:1px solid var(--border); border-radius:12px; padding:8px; display:grid; gap:6px; min-height:96px; cursor:pointer; }
@@ -170,6 +190,7 @@
       </div>
       <div class="player-wrap">
         <iframe id="playerFrame" class="player-frame" title="IPTV Preview" allow="autoplay; fullscreen" loading="eager"></iframe>
+        <button id="previewFullscreenBtn" class="preview-fullscreen" type="button" aria-label="Fullscreen">⛶</button>
       </div>
     </section>
 
@@ -364,7 +385,8 @@
       guideStatus: document.getElementById('guideStatus'),
       playerPanel: document.getElementById('playerPanel'),
       tvGuide: document.getElementById('tvGuide'),
-      playerWrap: document.querySelector('.player-wrap')
+      playerWrap: document.querySelector('.player-wrap'),
+      previewFullscreenBtn: document.getElementById('previewFullscreenBtn')
     };
 
     const epgState = {
@@ -891,7 +913,9 @@
         await (document.exitFullscreen?.() || document.webkitExitFullscreen?.());
       }
     }
+    els.playerPanel.addEventListener('dblclick', toggleFullscreen);
     els.playerWrap.addEventListener('dblclick', toggleFullscreen);
+    els.previewFullscreenBtn.addEventListener('click', toggleFullscreen);
 
     document.getElementById('appVersion').textContent = `v${APP_VERSION}`;
     console.info(`IPTV Quick Grid version ${APP_VERSION}`);
