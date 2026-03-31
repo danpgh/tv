@@ -223,7 +223,8 @@
   }
 }
   </script>
-    <script>
+
+  <script>
     const APP_VERSION = '2026-03-27.3';
     const FALLBACK_STREAM_HOST = '95.215.19.22';
     const FALLBACK_STREAM_PROTOCOL = 'http:';
@@ -417,7 +418,6 @@
         'Documentar Sportiv • Legende',
         'Handbal Feminin • Meci direct',
         'Analiza Tactica • Invitati speciali'
-                'Analiza Tactica • Invitati speciali'
       ],
       Movies: [
         'Film de Actiune • Premiera TV',
@@ -616,7 +616,7 @@
       }
       return items;
     }
-      
+
     async function fetchProgramTvForChannel(channel) {
       try {
         if (!channel?.name) return false;
