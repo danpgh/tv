@@ -80,7 +80,8 @@
     .player:fullscreen,
     .player:-webkit-full-screen,
     .player:-moz-full-screen,
-    .player:-ms-fullscreen {
+    .player:-ms-fullscreen,
+    .player.player-cinema {
       width:100vw !important;
       max-width:none !important;
       height:100vh;
@@ -97,7 +98,8 @@
     .player:fullscreen .player-wrap,
     .player:-webkit-full-screen .player-wrap,
     .player:-moz-full-screen .player-wrap,
-    .player:-ms-fullscreen .player-wrap {
+    .player:-ms-fullscreen .player-wrap,
+    .player.player-cinema .player-wrap {
       flex:1;
       width:100%;
       height:100%;
@@ -108,7 +110,8 @@
     .player:fullscreen .player-frame,
     .player:-webkit-full-screen .player-frame,
     .player:-moz-full-screen .player-frame,
-    .player:-ms-fullscreen .player-frame {
+    .player:-ms-fullscreen .player-frame,
+    .player.player-cinema .player-frame {
       width:100%;
       height:100%;
       display:block;
@@ -116,7 +119,8 @@
     .player:fullscreen .player-head,
     .player:-webkit-full-screen .player-head,
     .player:-moz-full-screen .player-head,
-    .player:-ms-fullscreen .player-head {
+    .player:-ms-fullscreen .player-head,
+    .player.player-cinema .player-head {
       display:flex;
       border-bottom:1px solid #1e2742;
       background:rgba(9,11,18,.96);
@@ -258,7 +262,7 @@
   </script>
 
   <script>
-    const APP_VERSION = '2026-04-01.3';
+    const APP_VERSION = '2026-04-01.4';
     const channels = [
       {name:'PROTV HD',embed:'https://canale-tv.com/channel/pr0tv.html',category:'General',description:'Romanian general entertainment and news.'},
       {name:'A1 HD',embed:'https://canale-tv.com/channel/a1.html',category:'General',description:'Popular Romanian general TV content.'},
@@ -383,7 +387,6 @@
       favorites: new Set(JSON.parse(localStorage.getItem('iptv-favorites') || '[]')),
       order: JSON.parse(localStorage.getItem('iptv-order') || '[]')
     };
-    let fullscreenScaleTimer = null;
 
     const els = {
       grid: document.getElementById('channelGrid'),
@@ -892,8 +895,7 @@
     els.goToStream.addEventListener('click', () => focusPanel(els.playerPanel));
     els.goToProgram.addEventListener('click', () => focusPanel(els.tvGuide));
     function isPlayerFullscreen() {
-      const fsElement = document.fullscreenElement || document.webkitFullscreenElement;
-      return fsElement === els.playerPanel;
+      return els.playerPanel.classList.contains('player-cinema');
     }
 
     function syncFullscreenUi() {
@@ -902,41 +904,9 @@
       els.playerFsBtn.setAttribute('aria-pressed', String(inFullscreen));
     }
 
-    function applyFullscreenScale() {
-      if (!isPlayerFullscreen()) {
-        els.playerFrame.style.transform = '';
-        els.playerFrame.style.transformOrigin = '';
-        els.playerFrame.style.width = '';
-        els.playerFrame.style.height = '';
-        return;
-      }
-      const scaleX = window.innerWidth / 640;
-      const scaleY = window.innerHeight / 360;
-      const scale = Math.max(1, Math.min(scaleX, scaleY));
-      els.playerFrame.style.transformOrigin = 'top left';
-      els.playerFrame.style.transform = `scale(${scale})`;
-      els.playerFrame.style.width = `${100 / scale}%`;
-      els.playerFrame.style.height = `${100 / scale}%`;
-    }
-
-    function syncFullscreenScaleLoop() {
-      if (fullscreenScaleTimer) {
-        clearInterval(fullscreenScaleTimer);
-        fullscreenScaleTimer = null;
-      }
-      if (!isPlayerFullscreen()) return;
-      applyFullscreenScale();
-      fullscreenScaleTimer = setInterval(applyFullscreenScale, 500);
-    }
-
     async function toggleFullscreen() {
-      if (!isPlayerFullscreen()) {
-        await (els.playerPanel.requestFullscreen?.() || els.playerPanel.webkitRequestFullscreen?.());
-      } else {
-        await (document.exitFullscreen?.() || document.webkitExitFullscreen?.());
-      }
+      els.playerPanel.classList.toggle('player-cinema');
       syncFullscreenUi();
-      applyFullscreenScale();
     }
     els.prevFavBtn.addEventListener('click', () => navigateFavorite(-1));
     els.nextFavBtn.addEventListener('click', () => navigateFavorite(1));
@@ -944,21 +914,14 @@
     els.playerWrap.addEventListener('dblclick', toggleFullscreen);
     document.addEventListener('keydown', (e) => {
       if (e.key === 'Escape' && isPlayerFullscreen()) {
-        document.exitFullscreen?.();
-        document.webkitExitFullscreen?.();
+        els.playerPanel.classList.remove('player-cinema');
+        syncFullscreenUi();
         return;
       }
       if (!isPlayerFullscreen()) return;
       if (e.key === 'ArrowUp') { e.preventDefault(); navigateFavorite(-1); }
       if (e.key === 'ArrowDown') { e.preventDefault(); navigateFavorite(1); }
     });
-    document.addEventListener('fullscreenchange', syncFullscreenUi);
-    document.addEventListener('webkitfullscreenchange', syncFullscreenUi);
-    document.addEventListener('fullscreenchange', applyFullscreenScale);
-    document.addEventListener('webkitfullscreenchange', applyFullscreenScale);
-    document.addEventListener('fullscreenchange', syncFullscreenScaleLoop);
-    document.addEventListener('webkitfullscreenchange', syncFullscreenScaleLoop);
-    window.addEventListener('resize', applyFullscreenScale);
     document.getElementById('appVersion').textContent = `v${APP_VERSION}`;
     console.info(`IPTV Quick Grid version ${APP_VERSION}`);
     initCategories();
