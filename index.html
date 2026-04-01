@@ -1,3 +1,4 @@
+
 <!doctype html>
 <html lang="ro">
 <head>
@@ -21,7 +22,7 @@
     .top { display:grid; gap:10px; margin-bottom:12px; }
     .controls { display:grid; grid-template-columns:1fr 220px auto; gap:8px; }
     input,select { width:100%; border:1px solid var(--border); border-radius:10px; background:#0f1322; color:var(--text); padding:10px 12px; outline:none; }
-    button { border:1px solid var(--border); border-radius:4px; background:#131a2d; color:var(--text); padding:7px 9px; font-size:.82rem; cursor:pointer; }
+    button { border:1px solid var(--border); border-radius:8px; background:#131a2d; color:var(--text); padding:5px 7px; font-size:.76rem; cursor:pointer; }
     button.active { border-color:var(--accent); color:#dce4ff; }
     .notice { color:#bfcef8; font-size:.84rem; line-height:1.35; }
     .quick-nav { display:flex; gap:8px; flex-wrap:wrap; }
@@ -55,16 +56,16 @@
       box-shadow: 0 12px 22px rgba(0,0,0,.35);
     }
     .guide-head { display:flex; justify-content:space-between; align-items:center; gap:8px; margin-bottom:8px; }
-    .guide-title { margin: 0; font-size: 1rem; color: #c9d3f7; }
-    .guide-badge { font-size:.84rem; border:1px solid #3a4a7b; background:#1a2444; color:#ccdaff; border-radius:999px; padding:3px 9px; }
+    .guide-title { margin: 0; font-size: .78rem; color: #c9d3f7; }
+    .guide-badge { font-size:.62rem; border:1px solid #3a4a7b; background:#1a2444; color:#ccdaff; border-radius:999px; padding:2px 7px; }
     .guide-badge.live { border-color:#2f8762; background:#123527; color:#8df0be; }
-    .guide-list { max-height: 260px; overflow-y: auto; padding-right: 4px; }
-    .guide-row { display: grid; grid-template-columns: 64px 1fr; gap: 8px; font-size: .9rem; margin-bottom: 7px; }
+    .guide-list { max-height: 230px; overflow-y: auto; padding-right: 4px; }
+    .guide-row { display: grid; grid-template-columns: 46px 1fr; gap: 6px; font-size: .66rem; margin-bottom: 5px; }
     .guide-time { color: #9db0eb; }
     .guide-show { color: #e1e8ff; line-height:1.35; }
     .player-head { display:flex; justify-content:space-between; gap:10px; align-items:center; padding:8px 10px; }
-    .player-title { margin:0; font-size:.95rem; }
-    .player-meta { color:var(--muted); font-size:.82rem; }
+    .player-title { margin:0; font-size:.78rem; }
+    .player-meta { color:var(--muted); font-size:.66rem; }
     .player-wrap {
       border-top:1px solid var(--border);
       overflow:hidden;
@@ -88,9 +89,6 @@
 
     .grid { display:grid; grid-template-columns:repeat(5,minmax(0,1fr)); gap:10px; }
     .card { background:var(--panel); border:1px solid var(--border); border-radius:12px; padding:8px; display:grid; gap:6px; min-height:96px; cursor:pointer; }
-    .card.dragging { opacity:.5; border-style:dashed; }
-    .title-row { display:flex; align-items:center; gap:8px; }
-    .tv-logo { width:22px; height:22px; object-fit:contain; border-radius:4px; background:#0d1323; border:1px solid #2a365a; padding:2px; }
     .card.active { border-color:var(--accent); }
     .card-header { display:flex; align-items:start; justify-content:space-between; gap:8px; }
     .title { margin:0; font-size:.82rem; line-height:1.2; }
@@ -322,21 +320,12 @@
       {name:'Dizi',embed:'https://canale-tv.com/channel/dizy.html',category:'Entertainment',description:'Turkish drama and serial content.'}
     ];
 
-    const channelLogos = {
-      'PROTV HD': 'https://upload.wikimedia.org/wikipedia/commons/thumb/5/5a/PRO_TV_Logo.svg/120px-PRO_TV_Logo.svg.png',
-      'A1 HD': 'https://upload.wikimedia.org/wikipedia/commons/thumb/b/b7/Antena_1_2016_logo.svg/120px-Antena_1_2016_logo.svg.png',
-      'TVR1': 'https://upload.wikimedia.org/wikipedia/commons/thumb/7/73/TVR_1_logo_2019.svg/120px-TVR_1_logo_2019.svg.png',
-      'DIGI SPORT 1': 'https://upload.wikimedia.org/wikipedia/commons/thumb/b/b9/Digi_Sport_logo.svg/120px-Digi_Sport_logo.svg.png',
-      'BBC NEWS': 'https://upload.wikimedia.org/wikipedia/commons/thumb/5/58/BBC_News_2022_%28Alt%29.svg/120px-BBC_News_2022_%28Alt%29.svg.png'
-    };
-
     const appState = {
       playing: null,
       search: '',
       category: 'all',
       favoritesOnly: false,
-      favorites: new Set(JSON.parse(localStorage.getItem('iptv-favorites') || '[]')),
-      order: JSON.parse(localStorage.getItem('iptv-order') || '[]')
+      favorites: new Set(JSON.parse(localStorage.getItem('iptv-favorites') || '[]'))
     };
 
     const els = {
@@ -467,22 +456,6 @@
     ];
 
     function saveState() { localStorage.setItem('iptv-favorites', JSON.stringify([...appState.favorites])); }
-    function saveOrder() { localStorage.setItem('iptv-order', JSON.stringify(appState.order)); }
-    function orderedChannels() {
-      if (!appState.order.length) return channels.slice();
-      const rank = new Map(appState.order.map((name, idx) => [name, idx]));
-      return channels.slice().sort((a, b) => (rank.get(a.name) ?? 9999) - (rank.get(b.name) ?? 9999) || a.name.localeCompare(b.name));
-    }
-    function moveChannelBefore(draggedName, targetName) {
-      const list = orderedChannels().map(c => c.name);
-      const from = list.indexOf(draggedName);
-      const to = list.indexOf(targetName);
-      if (from === -1 || to === -1 || from === to) return;
-      const [item] = list.splice(from, 1);
-      list.splice(to, 0, item);
-      appState.order = list;
-      saveOrder();
-    }
     function isFavorite(name) { return appState.favorites.has(name); }
     function toggleFavorite(name) {
       appState.favorites.has(name) ? appState.favorites.delete(name) : appState.favorites.add(name);
@@ -754,10 +727,15 @@
 
     function filteredChannels() {
       const q = appState.search.toLowerCase();
-      return orderedChannels()
+      return channels
         .filter(c => appState.category === 'all' || c.category === appState.category)
         .filter(c => c.name.toLowerCase().includes(q) || c.description.toLowerCase().includes(q))
-        .filter(c => !appState.favoritesOnly || isFavorite(c.name));
+        .filter(c => !appState.favoritesOnly || isFavorite(c.name))
+        .sort((a,b) => {
+          const favDelta = Number(isFavorite(b.name)) - Number(isFavorite(a.name));
+          if (favDelta !== 0) return favDelta;
+          return a.name.localeCompare(b.name);
+        });
     }
 
     function render() {
@@ -768,34 +746,17 @@
       for (const c of list) {
         const card = document.createElement('article');
         card.className = `card ${appState.playing === c.name ? 'active' : ''}`;
-        card.draggable = true;
-        card.dataset.channel = c.name;
-        const logoHtml = channelLogos[c.name] ? `<img class="tv-logo" src="${channelLogos[c.name]}" alt="${c.name} logo" loading="lazy" />` : '';
         card.innerHTML = `
-          <div class="card-header"><div class="title-row">${logoHtml}<h3 class="title">${c.name}</h3></div><span class="badge">${c.category}</span></div>
+          <div class="card-header"><h3 class="title">${c.name}</h3><span class="badge">${c.category}</span></div>
           <p class="desc">${c.description}</p>
           <div class="actions">
             <button class="open" type="button">▶ Open stream</button>
             <button class="fav ${isFavorite(c.name) ? 'active' : ''}" type="button" title="Favorite">★</button>
           </div>
         `;
-        card.querySelector('.open').addEventListener('click', (e) => { e.stopPropagation(); openStream(c); });
-        card.addEventListener('click', () => openStream(c));
+        card.querySelector('.open').addEventListener('click', (e) => { e.stopPropagation(); openStream(c, { autoLaunch: true }); });
+        card.addEventListener('click', () => openStream(c, { autoLaunch: true }));
         card.querySelector('.fav').addEventListener('click', (e) => { e.stopPropagation(); toggleFavorite(c.name); });
-        card.addEventListener('dragstart', (e) => {
-          card.classList.add('dragging');
-          e.dataTransfer?.setData('text/plain', c.name);
-          e.dataTransfer.effectAllowed = 'move';
-        });
-        card.addEventListener('dragend', () => card.classList.remove('dragging'));
-        card.addEventListener('dragover', (e) => { e.preventDefault(); e.dataTransfer.dropEffect = 'move'; });
-        card.addEventListener('drop', (e) => {
-          e.preventDefault();
-          const dragged = e.dataTransfer?.getData('text/plain');
-          if (!dragged || dragged === c.name) return;
-          moveChannelBefore(dragged, c.name);
-          render();
-        });
         els.grid.append(card);
       }
       els.showFav.classList.toggle('active', appState.favoritesOnly);
