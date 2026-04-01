@@ -33,18 +33,18 @@
       transition: box-shadow .25s ease;
     }
     .player {
-      width: min(736px, calc(100vw - 24px));
+      width: min(860px, calc(100vw - 24px));
       margin: 0 auto 10px;
       background:rgba(10,14,24,.95);
       border:1px solid var(--border);
       border-radius:12px;
-      overflow:hidden;
+      overflow:visible;
       box-shadow:0 14px 30px rgba(0,0,0,.45);
       position: relative;
       z-index: 2;
     }
     .tv-guide {
-      width: min(736px, calc(100vw - 24px));
+      width: min(860px, calc(100vw - 24px));
       position: relative;
       margin: 0 auto 12px;
       z-index: 1;
@@ -70,7 +70,7 @@
     .player-wrap {
       position:relative;
       border-top:1px solid var(--border);
-      overflow:hidden;
+      overflow:visible;
       background:#000;
       aspect-ratio:16/9;
       min-height: 360px;
@@ -112,7 +112,7 @@
     @media (max-width:1400px) { .grid { grid-template-columns:repeat(4,minmax(0,1fr)); } }
     @media (max-width:1160px) {
       .grid { grid-template-columns:repeat(4,minmax(0,1fr)); }
-      .player, .tv-guide { width: min(644px, calc(100vw - 20px)); }
+      .player, .tv-guide { width: min(740px, calc(100vw - 20px)); }
       .guide-list { max-height: 200px; }
       .player-wrap { min-height: 300px; max-height: 400px; }
     }
@@ -214,7 +214,7 @@
   </script>
 
   <script>
-    const APP_VERSION = '2026-04-01.6';
+    const APP_VERSION = '2026-04-01.7';
     const channels = [
       {name:'PROTV HD',embed:'https://canale-tv.com/channel/pr0tv.html',category:'General',description:'Romanian general entertainment and news.'},
       {name:'A1 HD',embed:'https://canale-tv.com/channel/a1.html',category:'General',description:'Popular Romanian general TV content.'},
