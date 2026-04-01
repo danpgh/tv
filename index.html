@@ -73,8 +73,9 @@
       border-top:1px solid var(--border);
       overflow:hidden;
       background:#000;
-      aspect-ratio:16/9;
-      max-height: 420px;
+      aspect-ratio:16/10;
+      min-height: 380px;
+      max-height: 520px;
     }
     .player-frame { width:100%; height:100%; border:0; background:#000; }
     .player:fullscreen,
@@ -157,7 +158,7 @@
       .grid { grid-template-columns:repeat(4,minmax(0,1fr)); }
       .player, .tv-guide { width: min(560px, calc(100vw - 20px)); }
       .guide-list { max-height: 200px; }
-      .player-wrap { max-height: 360px; }
+      .player-wrap { min-height: 320px; max-height: 420px; }
     }
     @media (max-width:900px) {
       .controls { grid-template-columns:1fr; }
@@ -169,7 +170,7 @@
       .grid { grid-template-columns:1fr; }
       .player, .tv-guide { width: calc(100vw - 16px); }
       .guide-list { max-height: 140px; }
-      .player-wrap { max-height: 250px; }
+      .player-wrap { min-height: 230px; max-height: 300px; }
       .wrap { padding-bottom: 20px; }
     }
   </style>
@@ -257,7 +258,7 @@
   </script>
 
   <script>
-    const APP_VERSION = '2026-04-01.5';
+    const APP_VERSION = '2026-04-01.6';
     const channels = [
       {name:'PROTV HD',embed:'https://canale-tv.com/channel/pr0tv.html',category:'General',description:'Romanian general entertainment and news.'},
       {name:'A1 HD',embed:'https://canale-tv.com/channel/a1.html',category:'General',description:'Popular Romanian general TV content.'},
