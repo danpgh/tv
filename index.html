@@ -1,56 +1,67 @@
-
 <!doctype html>
 <html lang="ro">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>IPTV Quick Grid - Preview Fix</title>
+  <title>IPTV Quick Grid - Full Fix</title>
   <style>
     :root { --bg:#090b12; --panel:#111522; --border:#27304a; --text:#ebefff; --muted:#98a3c7; --accent:#6f8cff; --fav:#ffd166; }
     * { box-sizing:border-box; }
     body { margin:0; font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif; background:radial-gradient(circle at top right,#1c2548 0%,#0e1220 42%,var(--bg) 100%); color:var(--text); min-height:100vh; }
-    .wrap { max-width: 1600px; margin: 0 auto; padding: 14px; }
-    .panel { background:linear-gradient(180deg, rgba(22,28,44,.92), rgba(14,18,30,.95)); border:1px solid var(--border); border-radius:14px; padding:12px; margin-bottom: 12px; }
+    .wrap { max-width: 1600px; margin: 0 auto; padding: 14px; padding-bottom: 28px; }
+    .panel { background:linear-gradient(180deg, rgba(22,28,44,.92), rgba(14,18,30,.95)); border:1px solid var(--border); border-radius:14px; padding:12px; margin-bottom: 12px;}
     
+    /* MODIFICARE: FONT MARE PROGRAM TV */
+    .tv-guide { width: min(700px, calc(100vw - 24px)); margin: 0 auto 15px; background: rgba(10,14,24,.95); border: 1px solid var(--border); border-radius: 12px; padding: 15px; box-shadow: 0 12px 22px rgba(0,0,0,.35); }
+    .guide-title { font-size: 1.2rem; color: var(--accent); margin: 0 0 10px; font-weight: bold; border-bottom: 1px solid var(--border); padding-bottom: 5px;}
+    .guide-list { max-height: 250px; overflow-y: auto; }
+    .guide-row { display: grid; grid-template-columns: 85px 1fr; gap: 10px; padding: 10px 0; border-bottom: 1px solid rgba(255,255,255,0.05); }
+    .guide-time { color: #9db0eb; font-size: 1.1rem; font-weight: 600; }
+    .guide-show { color: #e1e8ff; font-size: 1.1rem; line-height: 1.4; }
+
     /* PLAYER PREVIEW */
-    .player { width: min(800px, calc(100vw - 24px)); margin: 0 auto 15px; background:#000; border:1px solid var(--border); border-radius:12px; overflow:hidden; }
-    .player-head { padding: 10px; display: flex; justify-content: space-between; background: #161c2c; }
-    .player-wrap { aspect-ratio: 16/9; background: #000; position: relative; }
-    iframe { width: 100%; height: 100%; border: none; }
-
-    /* PROGRAM TV (FONT MARIT) */
-    .tv-guide { width: min(800px, calc(100vw - 24px)); margin: 0 auto 20px; background: rgba(10,14,24,.95); border: 1px solid var(--border); border-radius: 12px; padding: 15px; }
-    .guide-row { display: grid; grid-template-columns: 100px 1fr; gap: 15px; padding: 12px 0; border-bottom: 1px solid rgba(255,255,255,0.05); }
-    .guide-time { color: var(--accent); font-size: 1.15rem; font-weight: bold; }
-    .guide-show { color: #fff; font-size: 1.15rem; line-height: 1.4; }
-
+    .player { width: min(700px, calc(100vw - 24px)); margin: 0 auto 15px; background:#000; border:1px solid var(--border); border-radius:12px; overflow:hidden; box-shadow:0 14px 30px rgba(0,0,0,.45); }
+    .player-head { padding: 10px; display: flex; justify-content: space-between; align-items: center; background: #161c2c; }
+    .player-wrap { aspect-ratio: 16/9; background: #000; }
+    .player-frame { width: 100%; height: 100%; border: none; }
+    
     /* GRID CANALE */
     .grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(200px, 1fr)); gap:10px; }
-    .card { background:var(--panel); border:1px solid var(--border); border-radius:12px; padding:15px; cursor:pointer; text-align: center;}
+    .card { background:var(--panel); border:1px solid var(--border); border-radius:12px; padding:12px; cursor:pointer; transition: 0.2s; position: relative;}
+    .card:hover { border-color: var(--accent); transform: translateY(-2px); }
     .card.active { border-color: var(--accent); background: #1a2238; }
-    .title { font-size: 1rem; font-weight: bold; }
+    .title { font-size: .9rem; margin: 0 0 5px; font-weight: 600; color: #fff; }
+    .badge { font-size: .65rem; background: #222c49; color: var(--accent); padding: 2px 8px; border-radius: 10px; border: 1px solid #3a4a7b; }
     
-    input { width: 100%; padding: 12px; border-radius: 8px; background: #0f1322; color: white; border: 1px solid var(--border); margin-bottom: 10px; }
+    input, select { background: #0f1322; border: 1px solid var(--border); color: white; padding: 10px; border-radius: 8px; width: 100%; outline: none; }
+    .controls { display: grid; grid-template-columns: 1fr 200px auto; gap: 10px; margin-top: 10px; }
   </style>
 </head>
 <body>
   <div class="wrap">
     <section class="panel">
-      <h1>IPTV Preview Mode</h1>
-      <input id="searchInput" placeholder="Caută canal..." />
+      <h1 style="margin:0">IPTV Quick Grid <small style="font-size:0.6rem; opacity:0.5" id="ver"></small></h1>
+      <div class="controls">
+        <input id="searchInput" placeholder="Caută canal..." />
+        <select id="catSelect"><option value="all">Toate categoriile</option></select>
+        <button id="favOnly" style="background:#131a2d; color:white; border:1px solid var(--border); padding:0 15px; border-radius:8px; cursor:pointer;">★ Favorite</button>
+      </div>
     </section>
 
     <section class="player">
-      <div class="player-head"><span id="pTitle">Selectează un canal</span></div>
+      <div class="player-head">
+        <span id="pTitle" style="font-size:0.9rem; font-weight:600;">Selectează un canal</span>
+        <a id="pExt" href="#" target="_blank" style="font-size:0.7rem; color:var(--accent); text-decoration:none;">Extern ↗</a>
+      </div>
       <div class="player-wrap">
-        <iframe id="pFrame" allow="autoplay; fullscreen"></iframe>
+        <iframe id="pFrame" class="player-frame" allow="autoplay; fullscreen"></iframe>
       </div>
     </section>
 
     <section class="tv-guide">
-      <div style="font-size: 1.2rem; font-weight: bold; border-bottom: 1px solid var(--border); padding-bottom: 10px; margin-bottom: 10px;">📺 Program TV</div>
-      <div id="gList">
-        <div style="padding: 20px; color: var(--muted); text-align: center;">Alege un post pentru program...</div>
+      <div class="guide-title">📺 Program: <span id="gName" style="color:#fff">-</span></div>
+      <div id="gList" class="guide-list">
+        <div style="padding:20px; text-align:center; color:var(--muted)">Apasă pe un canal pentru detalii</div>
       </div>
     </section>
 
@@ -58,53 +69,102 @@
   </div>
 
   <script>
+    const APP_VERSION = '2026-03-27.FIX';
     const FALLBACK_IP = '95.215.19.22';
 
-    // LISTA TA DE CANALE (Completează cu restul canalelor tale aici)
+    // LISTA TA COMPLETA DE CANALE
     const channels = [
       {name:'PROTV HD',embed:'https://canale-tv.com/channel/pr0tv.html',category:'General'},
       {name:'A1 HD',embed:'https://canale-tv.com/channel/a1.html',category:'General'},
-      {name:'DIGI SPORT 1',embed:'https://canale-tv.com/channel/dgsp1.html',category:'Sports'},
+      {name:'TVR1',embed:'https://canale-tv.com/channel/tvr1.html',category:'General'},
+      {name:'TVR2',embed:'https://canale-tv.com/channel/tvr2.html',category:'General'},
+      {name:'CANAL D',embed:'https://canale-tv.com/channel/canald.html',category:'General'},
+      {name:'CANAL D2',embed:'https://canale-tv.com/channel/canald2.html',category:'General'},
+      {name:'PRIMA TV',embed:'https://canale-tv.com/channel/primatv.html',category:'General'},
+      {name:'NATIONAL TV',embed:'https://canale-tv.com/channel/nationaltv.html',category:'General'},
+      {name:'TVR 3',embed:'https://canale-tv.com/channel/tvr3.html',category:'General'},
+      {name:'PROCINEMA',embed:'https://canale-tv.com/channel/procinema.html',category:'Movies'},
+      {name:'ACASA TV',embed:'https://canale-tv.com/channel/acasatv.html',category:'General'},
+      {name:'A3 CNN',embed:'https://canale-tv.com/channel/a3cnn.html',category:'News'},
+      {name:'ROMANIA TV',embed:'https://canale-tv.com/channel/romaniatv.html',category:'News'},
+      {name:'SUPERSPORT 1',embed:'https://canale-tv.com/channel/dgsp1.html',category:'Sports'},
+      {name:'SUPERSPORT 2',embed:'https://canale-tv.com/channel/dgsp2.html',category:'Sports'},
+      {name:'PRIMA SPORT 1',embed:'https://canale-tv.com/channel/primasp1.html',category:'Sports'},
       {name:'HB0',embed:'https://canale-tv.com/channel/hb.html',category:'Movies'},
-      {name:'FILM CAFE',embed:'https://canale-tv.com/channel/filmcafe.html',category:'Movies'}
+      {name:'HB0 2',embed:'https://canale-tv.com/channel/hb2.html',category:'Movies'},
+      {name:'HB0 3',embed:'https://canale-tv.com/channel/hb3.html',category:'Movies'},
+      {name:'FILM CAFE',embed:'https://canale-tv.com/channel/filmcafe.html',category:'Movies'},
+      {name:'TV 1000',embed:'https://canale-tv.com/channel/tv1000.html',category:'Movies'},
+      {name:'AXN HD',embed:'https://canale-tv.com/channel/axn.html',category:'Movies'},
+      {name:'CINEMAX',embed:'https://canale-tv.com/channel/cmax.html',category:'Movies'},
+      {name:'DISNEY CHANNEL',embed:'https://canale-tv.com/channel/disneych.html',category:'Kids'},
+      {name:'NICKELODEON',embed:'https://canale-tv.com/channel/nickelodeon.html',category:'Kids'},
+      {name:'DISCOVERY CH',embed:'https://canale-tv.com/channel/discoverych.html',category:'Documentary'},
+      {name:'HISTORY CHANNEL',embed:'https://canale-tv.com/channel/historych.html',category:'Documentary'},
+      {name:'NATIONAL GEOGRAPHIC',embed:'https://canale-tv.com/channel/natgeo.html',category:'Documentary'}
+      // Adaugă aici restul canalelor dacă lipsesc, folosind același format
     ];
 
-    let activeChannel = null;
+    let state = { search: '', cat: 'all', favs: new Set(JSON.parse(localStorage.getItem('favs') || '[]')), playing: null };
 
-    function playStream(c) {
-      activeChannel = c.name;
-      document.getElementById('pTitle').textContent = `Redare: ${c.name}`;
+    function play(c) {
+      state.playing = c.name;
+      document.getElementById('pTitle').textContent = c.name;
+      document.getElementById('gName').textContent = c.name;
       
-      // ACESTA ESTE FIX-UL PENTRU IFRAME:
-      // Înlocuim domeniul cu IP-ul serverului de stream pentru a permite embed
+      // TRANSFORMARE LINK PENTRU PREVIEW (IP Fallback)
       let streamUrl = c.embed.replace('https://canale-tv.com', 'http://' + FALLBACK_IP);
-      
       document.getElementById('pFrame').src = streamUrl;
+      document.getElementById('pExt').href = c.embed;
 
-      // UPDATE PROGRAM TV (FONT MARE)
+      // PROGRAM TV (Simulat cu font mare)
       document.getElementById('gList').innerHTML = `
-        <div class="guide-row"><div class="guide-time">ACUM</div><div class="guide-show">Program live pe ${c.name}</div></div>
-        <div class="guide-row"><div class="guide-time">18:00</div><div class="guide-show">Știri și divertisment</div></div>
-        <div class="guide-row"><div class="guide-time">20:30</div><div class="guide-show">Film de seară</div></div>
+        <div class="guide-row"><span class="guide-time">ACUM</span><span class="guide-show">Se vizualizează ${c.name} (Live Preview)</span></div>
+        <div class="guide-row"><span class="guide-time">URMEAZĂ</span><span class="guide-show">Program de divertisment / Film / Știri</span></div>
       `;
+      render();
+    }
+
+    function toggleFav(name, e) {
+      e.stopPropagation();
+      state.favs.has(name) ? state.favs.delete(name) : state.favs.add(name);
+      localStorage.setItem('favs', JSON.stringify([...state.favs]));
       render();
     }
 
     function render() {
       const grid = document.getElementById('cGrid');
-      const search = document.getElementById('searchInput').value.toLowerCase();
       grid.innerHTML = '';
+      
+      const filtered = channels.filter(c => {
+        const matchesSearch = c.name.toLowerCase().includes(state.search.toLowerCase());
+        const matchesCat = state.cat === 'all' || c.category === state.cat;
+        return matchesSearch && matchesCat;
+      });
 
-      channels.filter(c => c.name.toLowerCase().includes(search)).forEach(c => {
+      filtered.forEach(c => {
         const card = document.createElement('div');
-        card.className = `card ${activeChannel === c.name ? 'active' : ''}`;
-        card.innerHTML = `<div class="title">${c.name}</div><div style="font-size:0.7rem; color:var(--muted)">${c.category}</div>`;
-        card.onclick = () => playStream(c);
-        grid.append(card);
+        card.className = `card ${state.playing === c.name ? 'active' : ''}`;
+        card.innerHTML = `
+          <div class="title">${c.name}</div>
+          <span class="badge">${c.category}</span>
+          <span class="fav-icon" style="position:absolute; right:10px; top:10px; color:${state.favs.has(c.name)?'#ffd166':'#333'}">★</span>
+        `;
+        card.onclick = () => play(c);
+        card.oncontextmenu = (e) => { e.preventDefault(); toggleFav(c.name, e); };
+        grid.appendChild(card);
       });
     }
 
-    document.getElementById('searchInput').oninput = render;
+    // Categorii
+    const cats = ['all', ...new Set(channels.map(c => c.category))];
+    const sel = document.getElementById('catSelect');
+    sel.innerHTML = cats.map(k => `<option value="${k}">${k === 'all' ? 'Toate' : k}</option>`).join('');
+
+    document.getElementById('searchInput').oninput = (e) => { state.search = e.target.value; render(); };
+    document.getElementById('catSelect').onchange = (e) => { state.cat = e.target.value; render(); };
+    document.getElementById('ver').textContent = APP_VERSION;
+    
     render();
   </script>
 </body>
