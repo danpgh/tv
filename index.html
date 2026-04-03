@@ -3,161 +3,113 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>IPTV Quick Grid - Fullscreen Fixed</title>
+  <title>IPTV Quick Grid</title>
   <style>
     :root { --bg:#090b12; --panel:#111522; --border:#27304a; --text:#ebefff; --muted:#98a3c7; --accent:#6f8cff; --fav:#ffd166; }
     * { box-sizing:border-box; }
     body { margin:0; font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif; background:radial-gradient(circle at top right,#1c2548 0%,#0e1220 42%,var(--bg) 100%); color:var(--text); min-height:100vh; }
-    .wrap { max-width: 1600px; margin: 0 auto; padding: 14px; padding-bottom: 28px; }
-    .panel { background:linear-gradient(180deg, rgba(22,28,44,.92), rgba(14,18,30,.95)); border:1px solid var(--border); border-radius:14px; padding:12px; }
-    
-    /* Stil pentru butonul de Fullscreen */
-    .fs-trigger {
-      background: var(--accent);
-      color: #000;
-      border: none;
-      padding: 5px 12px;
-      border-radius: 6px;
-      font-weight: bold;
-      cursor: pointer;
-      font-size: 0.8rem;
-      transition: opacity 0.2s;
+    .wrap {
+      max-width: 1600px;
+      margin: 0 auto;
+      padding: 14px;
+      padding-right: 14px;
+      padding-bottom: 28px;
     }
-    .fs-trigger:hover { opacity: 0.8; }
-
+    .panel { background:linear-gradient(180deg, rgba(22,28,44,.92), rgba(14,18,30,.95)); border:1px solid var(--border); border-radius:14px; padding:12px; }
+    h1 { margin:0 0 6px; font-size:1.15rem; font-weight:700; letter-spacing:-0.015em; color:var(--text); text-shadow:0 2px 4px rgba(0,0,0,0.3); }
+    .hint { margin:0; color:var(--muted); font-size:.9rem; font-weight:400; }
+    .top { display:grid; grid-template-columns:1fr; gap:10px; margin-bottom:12px; }
+    .controls { display:grid; grid-template-columns:1fr 220px auto; gap:8px; align-items:center; }
+    input,select { width:100%; border:1px solid var(--border); border-radius:10px; background:#0f1322; color:var(--text); padding:10px 12px; font-size:.92rem; outline:none; transition:border-color .2s,box-shadow(.2s); }
+    input:focus,select:focus { border-color:var(--accent); box-shadow:0 0 0 3px rgba(111,140,255,0.15); }
+    button { border:1px solid var(--border); border-radius:10px; background:#131a2d; color:var(--text); padding:7px 9px; font-size:.82rem; font-weight:600; cursor:pointer; display:inline-flex; align-items:center; gap:6px; transition:all .2s; min-height:38px; }
+    button:hover { background:var(--accent); color:#000; border-color:transparent; transform:translateY(-1px); }
+    button:active { transform:translateY(0); }
+    
+    .view-container { display:flex; flex-direction:column; gap:14px; }
+    
     .player {
       width: min(860px, calc(100vw - 24px));
-      margin: 0 auto 10px;
+      margin: 0 auto;
       background:rgba(10,14,24,.95);
       border:1px solid var(--border);
       border-radius:12px;
       overflow:hidden;
+      box-shadow:0 14px 30px rgba(0,0,0,.45);
       position: relative;
     }
-    .player-head { display:flex; justify-content:space-between; gap:10px; align-items:center; padding:8px 10px; }
+    .player-head { display:flex; justify-content:space-between; gap:10px; align-items:center; padding:8px 10px; background:rgba(255,255,255,0.03); }
+    .player-title { margin:0; font-size:.95rem; font-weight:600; color:var(--accent); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .player-tools { display:flex; gap:6px; }
     
+    /* FIX FULLSCREEN: Am eliminat padding-right: 26px care bloca butonul */
     .player-wrap {
       position:relative;
       border-top:1px solid var(--border);
+      overflow:hidden;
       background:#000;
       aspect-ratio:16/9;
-      width: 100%;
+      min-height: 360px;
+      max-height: 520px;
     }
-    .player-frame { width:100%; height:100%; border:0; display: block; }
-
-    /* Restul stilurilor tale originale */
-    .controls { display:grid; grid-template-columns:1fr 220px auto; gap:8px; margin-top:10px; }
-    input, select, button { border:1px solid var(--border); border-radius:10px; background:#0f1322; color:var(--text); padding:10px; }
-    .grid { display:grid; grid-template-columns:repeat(5,minmax(0,1fr)); gap:10px; margin-top:20px; }
-    .card { background:var(--panel); border:1px solid var(--border); border-radius:12px; padding:12px; cursor:pointer; text-align:center; }
-    .card.active { border-color:var(--accent); background: rgba(111, 140, 255, 0.1); }
-    
-    @media (max-width:900px) { .grid { grid-template-columns:repeat(3,minmax(0,1fr)); } }
-    @media (max-width:500px) { .grid { grid-template-columns:repeat(2,minmax(0,1fr)); } .controls { grid-template-columns: 1fr; } }
-  </style>
-</head>
-<body>
-
-<div class="wrap">
-  <section class="panel">
-    <div style="display:flex; justify-content:space-between; align-items:center;">
-        <h1 style="margin:0; font-size:1.2rem;">IPTV Quick Grid</h1>
-        <span id="appVersion" style="font-size:0.7rem; color:var(--muted);"></span>
-    </div>
-    <div class="controls">
-      <input id="searchInput" placeholder="Caută post..." />
-      <select id="categorySelect"><option value="all">Toate categoriile</option></select>
-      <button id="showFav">★ Favorite</button>
-    </div>
-  </section>
-
-  <section class="player" id="mainPlayer">
-    <div class="player-head">
-      <strong id="playerTitle">Selectează un canal</strong>
-      <div style="display:flex; gap:10px; align-items:center;">
-        <button class="fs-trigger" onclick="toggleFullScreen()">ECRAN COMPLET</button>
-        <button id="prevFavBtn">CH-</button>
-        <button id="nextFavBtn">CH+</button>
-      </div>
-    </div>
-    <div class="player-wrap" id="pWrap">
-      <iframe id="playerFrame" class="player-frame" allow="autoplay; fullscreen" allowfullscreen></iframe>
-    </div>
-  </section>
-
-  <div class="grid" id="channelGrid"></div>
-</div>
-
-<script>
-    // AICI ADAUGI TOATE CANALELE TALE (am pus cateva ca exemplu, pune-le pe toate cele 50+)
-    const channels = [
-        {name:'PROTV HD',embed:'https://canale-tv.com/channel/pr0tv.html',category:'General'},
-        {name:'ANTENA 1',embed:'https://canale-tv.com/channel/a1.html',category:'General'},
-        {name:'HBO HD',embed:'https://canale-tv.com/channel/hb.html',category:'Filme'},
-        {name:'DIGI SPORT 1',embed:'https://canale-tv.com/channel/dgsp1.html',category:'Sport'},
-        {name:'EUROSPORT',embed:'https://canale-tv.com/channel/eurosport1.html',category:'Sport'},
-        {name:'KANAL D',embed:'https://canale-tv.com/channel/kanald.html',category:'General'}
-        // ... adauga restul aici
-    ];
-
-    let currentChannel = null;
-    let searchTerm = '';
-    let categoryFilter = 'all';
-
-    function toggleFullScreen() {
-        const playerElem = document.getElementById('mainPlayer');
-        if (!document.fullscreenElement) {
-            if (playerElem.requestFullscreen) playerElem.requestFullscreen();
-            else if (playerElem.webkitRequestFullscreen) playerElem.webkitRequestFullscreen();
-        } else {
-            if (document.exitFullscreen) document.exitFullscreen();
-        }
+    .player-frame { 
+      width:100%; 
+      height:100%; 
+      border:0; 
+      background:#000; 
+      display: block;
     }
 
-    function openStream(c) {
-        currentChannel = c.name;
-        document.getElementById('playerTitle').textContent = c.name;
-        document.getElementById('playerFrame').src = c.embed;
-        render();
+    .tv-guide {
+      width: min(860px, calc(100vw - 24px));
+      position: relative;
+      margin: 0 auto;
+      background: rgba(10,14,24,.95);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 8px;
     }
+    .guide-head { display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; padding:0 4px; }
+    .guide-head h3 { margin:0; font-size:.85rem; color:var(--muted); text-transform:uppercase; letter-spacing:0.05em; }
+    .guide-list { max-height: 260px; overflow-y: auto; scrollbar-width: thin; scrollbar-color: var(--border) transparent; }
+    .guide-row { display:grid; grid-template-columns: 80px 1fr; gap:12px; padding:8px; border-radius:8px; font-size:.88rem; transition:background .2s; }
+    .guide-row:nth-child(even) { background:rgba(255,255,255,0.02); }
+    .guide-time { color:var(--accent); font-weight:700; font-family:monospace; }
+    .guide-title { color:var(--text); font-weight:500; }
+    .guide-row.now { background:rgba(111,140,255,0.12); border-left:3px solid var(--accent); }
+    .guide-row.now .guide-title { font-weight:700; }
+    .guide-empty { padding:20px; text-align:center; color:var(--muted); font-style:italic; }
 
-    function render() {
-        const grid = document.getElementById('channelGrid');
-        grid.innerHTML = '';
-        
-        const filtered = channels.filter(c => 
-            (categoryFilter === 'all' || c.category === categoryFilter) &&
-            (c.name.toLowerCase().includes(searchTerm.toLowerCase()))
-        );
-
-        filtered.forEach(c => {
-            const card = document.createElement('div');
-            card.className = `card ${currentChannel === c.name ? 'active' : ''}`;
-            card.innerHTML = `<strong>${c.name}</strong><br><small style="color:var(--muted)">${c.category}</small>`;
-            card.onclick = () => openStream(c);
-            grid.appendChild(card);
-        });
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(5, minmax(0, 1fr));
+      gap: 10px;
     }
+    .card {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 10px;
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+      position: relative;
+      overflow: hidden;
+    }
+    .card:hover { border-color: var(--accent); transform: translateY(-2px); box-shadow: 0 6px 20px rgba(0,0,0,0.3); }
+    .card.active { border-color: var(--accent); background: rgba(111, 140, 255, 0.08); }
+    .card-top { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+    .tv-logo { width: 22px; height: 22px; object-fit: contain; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.2)); }
+    .tv-name { font-size: .88rem; font-weight: 700; color: var(--text); flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .btn-fav { background: none; border: none; padding: 4px; min-height: auto; color: var(--muted); cursor: pointer; border-radius: 6px; }
+    .btn-fav:hover { background: rgba(255, 209, 102, 0.15); color: var(--fav); }
+    .btn-fav.is-fav { color: var(--fav); }
+    .card-meta { font-size: .75rem; color: var(--muted); display: flex; justify-content: space-between; align-items: center; }
+    .cat-tag { padding: 2px 6px; border-radius: 4px; background: rgba(255,255,255,0.05); font-size: .7rem; }
 
-    // Dublu click pe video pentru FS
-    document.getElementById('pWrap').ondblclick = toggleFullScreen;
-
-    // Filtre
-    document.getElementById('searchInput').oninput = (e) => { searchTerm = e.target.value; render(); };
-    document.getElementById('categorySelect').onchange = (e) => { categoryFilter = e.target.value; render(); };
-
-    // Init categorii
-    const cats = ['all', ...new Set(channels.map(c => c.category))];
-    const sel = document.getElementById('categorySelect');
-    sel.innerHTML = '';
-    cats.forEach(cat => {
-        const opt = document.createElement('option');
-        opt.value = cat;
-        opt.textContent = cat;
-        sel.appendChild(opt);
-    });
-
-    render();
-</script>
-</body>
-</html>
+    @media (max-width: 1400px) { .grid { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+    @media (max-width: 900px) { .grid { grid-template-columns: repeat(3, minmax(0, 1fr)); } .controls { grid-template-columns: 1fr 160px auto; } }
+    @media (max-width: 680px) { .grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } .controls { grid-template-columns: 1fr; } }
+    @media (max-width: 430px)
