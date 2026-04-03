@@ -1,0 +1,192 @@
+<!doctype html>
+<html lang="ro">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>IPTV Quick Grid</title>
+  <style>
+    :root { --bg:#090b12; --panel:#111522; --border:#27304a; --text:#ebefff; --muted:#98a3c7; --accent:#6f8cff; --fav:#ffd166; }
+    * { box-sizing:border-box; }
+    body { margin:0; font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif; background:radial-gradient(circle at top right,#1c2548 0%,#0e1220 42%,var(--bg) 100%); color:var(--text); min-height:100vh; }
+    .wrap { max-width: 1600px; margin: 0 auto; padding: 14px; padding-bottom: 28px; }
+    .panel { background:linear-gradient(180deg, rgba(22,28,44,.92), rgba(14,18,30,.95)); border:1px solid var(--border); border-radius:14px; padding:12px; }
+    h1 { margin:0 0 6px; font-size:1.15rem; font-weight:700; color:var(--text); }
+    .hint { margin:0; color:var(--muted); font-size:.9rem; }
+    .controls { display:grid; grid-template-columns:1fr 220px auto; gap:8px; align-items:center; margin-top:10px; }
+    input,select { width:100%; border:1px solid var(--border); border-radius:10px; background:#0f1322; color:var(--text); padding:10px 12px; outline:none; }
+    button { border:1px solid var(--border); border-radius:10px; background:#131a2d; color:var(--text); padding:7px 9px; font-size:.82rem; cursor:pointer; min-height:38px; }
+    button:hover { background:var(--accent); color:#000; }
+    
+    .player { width: min(860px, calc(100vw - 24px)); margin: 0 auto; background:rgba(10,14,24,.95); border:1px solid var(--border); border-radius:12px; overflow:hidden; position: relative; }
+    .player-head { display:flex; justify-content:space-between; gap:10px; align-items:center; padding:8px 10px; }
+    .player-title { margin:0; font-size:.95rem; color:var(--accent); }
+    
+    /* MODIFICARE: Padding 0 pentru a nu bloca butoanele iframe-ului */
+    .player-wrap { position:relative; border-top:1px solid var(--border); background:#000; aspect-ratio:16/9; min-height: 360px; max-height: 520px; padding-right: 0; }
+    .player-frame { width:100%; height:100%; border:0; display: block; }
+
+    .tv-guide { width: min(860px, calc(100vw - 24px)); margin: 12px auto; background: rgba(10,14,24,.95); border: 1px solid var(--border); border-radius: 12px; padding: 8px; }
+    .guide-list { max-height: 260px; overflow-y: auto; }
+    .guide-row { display:grid; grid-template-columns: 80px 1fr; gap:12px; padding:8px; font-size:.88rem; }
+    .guide-time { color:var(--accent); font-weight:700; }
+
+    .grid { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 10px; margin-top: 20px; }
+    .card { background: var(--panel); border: 1px solid var(--border); border-radius: 12px; padding: 10px; cursor: pointer; transition: all 0.2s; }
+    .card:hover { border-color: var(--accent); }
+    .card.active { border-color: var(--accent); background: rgba(111, 140, 255, 0.1); }
+    
+    @media (max-width: 900px) { .grid { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+    @media (max-width: 600px) { .grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } .controls { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <section class="panel">
+      <h1>IPTV Quick Grid</h1>
+      <div class="controls">
+        <input type="text" id="searchInput" placeholder="Search for a channel..." />
+        <select id="categorySelect"><option value="all">All Categories</option></select>
+        <button id="showFavorites">☆ Show Favorites</button>
+      </div>
+    </section>
+
+    <section class="player" id="playerPanel">
+      <div class="player-head">
+        <h2 class="player-title" id="playerTitle">Select a channel</h2>
+        <div style="display:flex; gap:5px;">
+          <button id="prevFavBtn">CH-</button>
+          <button id="nextFavBtn">CH+</button>
+          <button onclick="togglePlayerFullscreen()">[ ]</button>
+        </div>
+      </div>
+      <div class="player-wrap" id="playerWrap">
+        <iframe id="playerFrame" class="player-frame" allow="autoplay; fullscreen" allowfullscreen></iframe>
+      </div>
+    </section>
+
+    <section class="tv-guide" id="tvGuide">
+      <div class="guide-list" id="guideList"></div>
+    </section>
+
+    <section class="grid" id="channelGrid"></section>
+  </div>
+
+  <script>
+    const channels = [
+      { name: 'PROTV HD', embed: 'https://canale-tv.com/channel/pr0tv.html', category: 'General' },
+      { name: 'PRO ARENA HD', embed: 'https://canale-tv.com/channel/proarena.html', category: 'Sports' },
+      { name: 'PRO CINEMA HD', embed: 'https://canale-tv.com/channel/procinema.html', category: 'Movies' },
+      { name: 'ANTENA 1 HD', embed: 'https://canale-tv.com/channel/a1.html', category: 'General' },
+      { name: 'ANTENA STARS HD', embed: 'https://canale-tv.com/channel/antstars.html', category: 'Entertainment' },
+      { name: 'ANTENA 3 CNN', embed: 'https://canale-tv.com/channel/a3.html', category: 'News' },
+      { name: 'HAPPY CHANNEL HD', embed: 'https://canale-tv.com/channel/happy.html', category: 'Lifestyle' },
+      { name: 'ZU TV HD', embed: 'https://canale-tv.com/channel/zutv.html', category: 'Music' },
+      { name: 'KANAL D HD', embed: 'https://canale-tv.com/channel/kanald.html', category: 'General' },
+      { name: 'KANAL D2 HD', embed: 'https://canale-tv.com/channel/kanald2.html', category: 'General' },
+      { name: 'DIGI SPORT 1 HD', embed: 'https://canale-tv.com/channel/dgsp1.html', category: 'Sports' },
+      { name: 'DIGI SPORT 2 HD', embed: 'https://canale-tv.com/channel/dgsp2.html', category: 'Sports' },
+      { name: 'DIGI SPORT 3 HD', embed: 'https://canale-tv.com/channel/dgsp3.html', category: 'Sports' },
+      { name: 'DIGI SPORT 4 HD', embed: 'https://canale-tv.com/channel/dgsp4.html', category: 'Sports' },
+      { name: 'DIGI 24 HD', embed: 'https://canale-tv.com/channel/dg24.html', category: 'News' },
+      { name: 'HBO HD', embed: 'https://canale-tv.com/channel/hb.html', category: 'Movies' },
+      { name: 'HBO 2 HD', embed: 'https://canale-tv.com/channel/hb2.html', category: 'Movies' },
+      { name: 'HBO 3 HD', embed: 'https://canale-tv.com/channel/hb3.html', category: 'Movies' },
+      { name: 'CINEMAX HD', embed: 'https://canale-tv.com/channel/cmax.html', category: 'Movies' },
+      { name: 'CINEMAX 2 HD', embed: 'https://canale-tv.com/channel/cmax2.html', category: 'Movies' },
+      { name: 'FILM NOW HD', embed: 'https://canale-tv.com/channel/film-now.html', category: 'Movies' },
+      { name: 'TV1000', embed: 'https://canale-tv.com/channel/tv1000.html', category: 'Movies' },
+      { name: 'AMC HD', embed: 'https://canale-tv.com/channel/amc.html', category: 'Movies' },
+      { name: 'DIVA', embed: 'https://canale-tv.com/channel/diva.html', category: 'Movies' },
+      { name: 'FILM CAFE', embed: 'https://canale-tv.com/channel/filmcafe.html', category: 'Movies' },
+      { name: 'CINEMARATON HD', embed: 'https://canale-tv.com/channel/cinemaraton.html', category: 'Movies' },
+      { name: 'WARNER TV HD', embed: 'https://canale-tv.com/channel/warner.html', category: 'Movies' },
+      { name: 'PARAMOUNT NETWORK', embed: 'https://canale-tv.com/channel/paramount.html', category: 'Movies' },
+      { name: 'EUROSPORT 1 HD', embed: 'https://canale-tv.com/channel/eurosp1.html', category: 'Sports' },
+      { name: 'EUROSPORT 2 HD', embed: 'https://canale-tv.com/channel/eurosp2.html', category: 'Sports' },
+      { name: 'PRIMA SPORT 1 HD', embed: 'https://canale-tv.com/channel/primasp1.html', category: 'Sports' },
+      { name: 'PRIMA SPORT 2 HD', embed: 'https://canale-tv.com/channel/primasp2.html', category: 'Sports' },
+      { name: 'HISTORY CHANNEL HD', embed: 'https://canale-tv.com/channel/hist.html', category: 'Documentary' },
+      { name: 'NATIONAL GEOGRAPHIC HD', embed: 'https://canale-tv.com/channel/natgeo.html', category: 'Documentary' },
+      { name: 'NAT GEO WILD HD', embed: 'https://canale-tv.com/channel/natgeowild.html', category: 'Documentary' },
+      { name: 'DISCOVERY HD', embed: 'https://canale-tv.com/channel/discovery.html', category: 'Documentary' },
+      { name: 'ANIMAL PLANET HD', embed: 'https://canale-tv.com/channel/animal.html', category: 'Documentary' },
+      { name: 'VIASAT HISTORY HD', embed: 'https://canale-tv.com/channel/viashist.html', category: 'Documentary' },
+      { name: 'VIASAT NATURE HD', embed: 'https://canale-tv.com/channel/viasnat.html', category: 'Documentary' },
+      { name: 'VIASAT EXPLORE HD', embed: 'https://canale-tv.com/channel/viasexpl.html', category: 'Documentary' },
+      { name: 'DISNEY CHANNEL', embed: 'https://canale-tv.com/channel/disney.html', category: 'Kids' },
+      { name: 'DISNEY JUNIOR', embed: 'https://canale-tv.com/channel/disneyjr.html', category: 'Kids' },
+      { name: 'CARTOON NETWORK', embed: 'https://canale-tv.com/channel/cartnet.html', category: 'Kids' },
+      { name: 'NICKELODEON HD', embed: 'https://canale-tv.com/channel/nick.html', category: 'Kids' },
+      { name: 'MINIMAX', embed: 'https://canale-tv.com/channel/minimax.html', category: 'Kids' },
+      { name: 'JIMJAM', embed: 'https://canale-tv.com/channel/jimjam.html', category: 'Kids' },
+      { name: 'NICK JR.', embed: 'https://canale-tv.com/channel/nickjr.html', category: 'Kids' },
+      { name: 'B1 TV HD', embed: 'https://canale-tv.com/channel/b1.html', category: 'News' },
+      { name: 'REALITATEA PLUS', embed: 'https://canale-tv.com/channel/realitatea.html', category: 'News' },
+      { name: 'ROMANIA TV', embed: 'https://canale-tv.com/channel/rtv.html', category: 'News' },
+      { name: 'PRIMA TV HD', embed: 'https://canale-tv.com/channel/primatv.html', category: 'General' },
+      { name: 'TVR 1 HD', embed: 'https://canale-tv.com/channel/tvr1.html', category: 'Public' },
+      { name: 'TVR 2 HD', embed: 'https://canale-tv.com/channel/tvr2.html', category: 'Public' },
+      { name: 'TVR 3', embed: 'https://canale-tv.com/channel/tvr3.html', category: 'Public' },
+      { name: 'PRO GOLD', embed: 'https://canale-tv.com/channel/progold.html', category: 'Movies' },
+      { name: 'AXN HD', embed: 'https://canale-tv.com/channel/axn.html', category: 'Movies' }
+    ];
+
+    const appState = {
+      playing: null,
+      search: '',
+      category: 'all',
+      favorites: new Set(JSON.parse(localStorage.getItem('iptv_favs') || '[]')),
+      favoritesOnly: false
+    };
+
+    const els = {
+      grid: document.getElementById('channelGrid'),
+      playerTitle: document.getElementById('playerTitle'),
+      playerFrame: document.getElementById('playerFrame'),
+      playerPanel: document.getElementById('playerPanel')
+    };
+
+    function togglePlayerFullscreen() {
+      // MODIFICARE: Aplicăm fullscreen pe container, nu pe iframe
+      const elem = els.playerPanel;
+      if (!document.fullscreenElement) {
+        if (elem.requestFullscreen) elem.requestFullscreen();
+        else if (elem.webkitRequestFullscreen) elem.webkitRequestFullscreen();
+      } else {
+        if (document.exitFullscreen) document.exitFullscreen();
+      }
+    }
+
+    function openStream(c) {
+      appState.playing = c.name;
+      els.playerTitle.textContent = c.name;
+      els.playerFrame.src = c.embed;
+      render();
+    }
+
+    function render() {
+      const filtered = channels.filter(c => 
+        (appState.category === 'all' || c.category === appState.category) &&
+        (c.name.toLowerCase().includes(appState.search.toLowerCase())) &&
+        (!appState.favoritesOnly || appState.favorites.has(c.name))
+      );
+
+      els.grid.innerHTML = filtered.map(c => `
+        <div class="card ${appState.playing === c.name ? 'active' : ''}" onclick='openStream(${JSON.stringify(c)})'>
+          <strong>${c.name}</strong><br><small>${c.category}</small>
+        </div>
+      `).join('');
+    }
+
+    document.getElementById('searchInput').oninput = (e) => { appState.search = e.target.value; render(); };
+    document.getElementById('categorySelect').onchange = (e) => { appState.category = e.target.value; render(); };
+    document.getElementById('showFavorites').onclick = () => { appState.favoritesOnly = !appState.favoritesOnly; render(); };
+
+    // Init categories
+    const cats = ['all', ...new Set(channels.map(c => c.category))];
+    document.getElementById('categorySelect').innerHTML = cats.map(c => `<option value="${c}">${c}</option>`).join('');
+
+    render();
+  </script>
+</body>
+</html>
