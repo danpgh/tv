@@ -3,154 +3,131 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>IPTV Quick Grid - Fullscreen Fixed</title>
+  <title>IPTV Quick Grid - Fullscreen Fix</title>
   <style>
     :root { --bg:#090b12; --panel:#111522; --border:#27304a; --text:#ebefff; --muted:#98a3c7; --accent:#6f8cff; --fav:#ffd166; }
     * { box-sizing:border-box; }
     body { margin:0; font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif; background:radial-gradient(circle at top right,#1c2548 0%,#0e1220 42%,var(--bg) 100%); color:var(--text); min-height:100vh; }
-    .wrap { max-width: 1600px; margin: 0 auto; padding: 14px; padding-bottom: 28px; }
-    .panel { background:linear-gradient(180deg, rgba(22,28,44,.92), rgba(14,18,30,.95)); border:1px solid var(--border); border-radius:14px; padding:12px; }
-    h1 { margin:0 0 6px; font-size:1.15rem; }
-    .hint { margin:0; color:var(--muted); font-size:.9rem; }
-    .top { display:grid; gap:10px; margin-bottom:12px; }
-    .controls { display:grid; grid-template-columns:1fr 220px auto; gap:8px; }
-    input,select { width:100%; border:1px solid var(--border); border-radius:10px; background:#0f1322; color:var(--text); padding:10px 12px; outline:none; }
-    button { border:1px solid var(--border); border-radius:0; background:#131a2d; color:var(--text); padding:7px 9px; font-size:.82rem; cursor:pointer; min-height:38px; }
+    .wrap { max-width: 1600px; margin: 0 auto; padding: 14px; }
     
     .player {
-      width: min(860px, calc(100vw - 24px));
-      margin: 0 auto 10px;
-      background:rgba(10,14,24,.95);
+      width: min(1000px, 100%);
+      margin: 0 auto 20px;
+      background:#000;
       border:1px solid var(--border);
       border-radius:12px;
       overflow:hidden;
-      box-shadow:0 14px 30px rgba(0,0,0,.45);
       position: relative;
-      z-index: 2;
     }
-    .player-head { display:flex; justify-content:space-between; gap:10px; align-items:center; padding:8px 10px; }
-    .player-title { margin:0; font-size:.95rem; }
+
+    /* Zona de butoane deasupra playerului */
+    .player-head { 
+        display:flex; 
+        justify-content:space-between; 
+        align-items:center; 
+        padding:10px; 
+        background: var(--panel);
+    }
     
-    /* MODIFICARE: Am scos padding-right care bloca butoanele din dreapta jos */
     .player-wrap {
       position:relative;
-      border-top:1px solid var(--border);
-      background:#000;
+      width: 100%;
       aspect-ratio:16/9;
-      min-height: 360px;
-      max-height: 520px;
-      padding-right: 0; 
+      background:#000;
     }
-    /* MODIFICARE: Iframe-ul ocupa acum 100% din spatiu */
-    .player-frame { width:100%; height:100%; border:0; background:#000; display: block; }
 
-    .tv-guide { width: min(860px, calc(100vw - 24px)); position: relative; margin: 0 auto 12px; background: rgba(10,14,24,.95); border: 1px solid var(--border); border-radius: 12px; padding: 8px; }
-    .guide-list { max-height: 260px; overflow-y: auto; }
-    .grid { display:grid; grid-template-columns:repeat(5,minmax(0,1fr)); gap:10px; }
-    .card { background:var(--panel); border:1px solid var(--border); border-radius:12px; padding:8px; cursor:pointer; transition: border-color 0.2s; }
-    .card.active { border-color:var(--accent); }
-    .tv-logo { width:22px; height:22px; object-fit:contain; }
-    
-    @media (max-width:1400px) { .grid { grid-template-columns:repeat(4,minmax(0,1fr)); } }
-    @media (max-width:900px) { .grid { grid-template-columns:repeat(3,minmax(0,1fr)); } }
-    @media (max-width:680px) { .grid { grid-template-columns:repeat(2,minmax(0,1fr)); } }
-    @media (max-width:430px) { .grid { grid-template-columns:1fr; } }
+    /* Iframe-ul trebuie sa ignore click-urile pentru dublu-click-ul nostru, 
+       dar avem nevoie de ele pentru controalele lui interne. 
+       Am optimizat aici: */
+    .player-frame { 
+      width:100%; 
+      height:100%; 
+      border:0; 
+    }
+
+    /* Buton special de Fullscreen */
+    .fs-btn {
+      background: var(--accent);
+      color: white;
+      border: none;
+      padding: 6px 12px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-weight: bold;
+    }
+
+    .grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(180px, 1fr)); gap:10px; }
+    .card { background:var(--panel); border:1px solid var(--border); border-radius:10px; padding:15px; cursor:pointer; text-align:center; }
+    .card:hover { border-color: var(--accent); }
+    .card.active { background: var(--accent); color: #000; }
   </style>
 </head>
 <body>
-  <div class="wrap">
-    <section class="panel top">
-      <h1>IPTV Quick Grid</h1>
-      <div class="controls">
-        <input id="searchInput" placeholder="Cauta post..." />
-        <select id="categorySelect"><option value="all">Toate categoriile</option></select>
-        <button id="showFavorites">★ Favorite</button>
-      </div>
-    </section>
 
-    <section class="player" id="playerPanel">
-      <div class="player-head">
-        <h2 class="player-title" id="playerTitle">Selecteaza un canal</h2>
-        <div class="player-tools">
-          <button id="prevFavBtn">CH-</button>
-          <button id="nextFavBtn">CH+</button>
-        </div>
-      </div>
-      <div class="player-wrap">
-        <iframe id="playerFrame" class="player-frame" title="IPTV Preview" 
-                allow="autoplay; fullscreen; picture-in-picture" 
-                allowfullscreen="true" 
-                webkitallowfullscreen="true" 
-                mozallowfullscreen="true"></iframe>
-      </div>
-    </section>
-
-    <section class="tv-guide">
-      <div class="guide-list" id="guideList">
-        <div class="guide-row">Selecteaza un canal pentru program...</div>
-      </div>
-    </section>
-
-    <section class="grid" id="channelGrid"></section>
+<div class="wrap">
+  <div class="player" id="mainPlayer">
+    <div class="player-head">
+      <strong id="pTitle">Selectează un canal</strong>
+      <button class="fs-btn" onclick="toggleFS()">Ecran Complet [ ]</button>
+    </div>
+    <div class="player-wrap" id="pWrap">
+      <iframe id="playerFrame" class="player-frame" 
+              allow="autoplay; fullscreen" 
+              allowfullscreen="true"></iframe>
+    </div>
   </div>
 
-  <script>
-    // Pastram logica ta originala de canale si functionalitate
-    const channels = [
-      {name:'PROTV HD',embed:'https://canale-tv.com/channel/pr0tv.html',category:'General',description:'Romanian entertainment.'},
-      {name:'A1 HD',embed:'https://canale-tv.com/channel/a1.html',category:'General',description:'Popular Romanian TV.'},
-      {name:'HB0',embed:'https://canale-tv.com/channel/hb.html',category:'Movies',description:'Premium movies.'},
-      {name:'DIGI SPORT 1',embed:'https://canale-tv.com/channel/dgsp1.html',category:'Sports',description:'Live sports.'},
-      {name:'FILM CAFE',embed:'https://canale-tv.com/channel/filmcafe.html',category:'Movies',description:'Classic cinema.'},
-      {name:'ANIMAL PLANET',embed:'https://canale-tv.com/channel/animalplanet.html',category:'Documentary',description:'Nature docs.'}
-      // Poti adauga restul listei tale aici...
-    ];
+  <div class="grid" id="channelGrid"></div>
+</div>
 
-    const appState = {
-      playing: null,
-      search: '',
-      category: 'all',
-      favorites: new Set()
-    };
+<script>
+const channels = [
+  {name:'PROTV HD',embed:'https://canale-tv.com/channel/pr0tv.html'},
+  {name:'ANTENA 1',embed:'https://canale-tv.com/channel/a1.html'},
+  {name:'DIGI SPORT 1',embed:'https://canale-tv.com/channel/dgsp1.html'},
+  {name:'HBO HD',embed:'https://canale-tv.com/channel/hb.html'}
+];
 
-    function openStream(channel) {
-      appState.playing = channel.name;
-      document.getElementById('playerTitle').textContent = channel.name;
-      document.getElementById('playerFrame').src = channel.embed;
-      render();
+function openStream(c) {
+  document.getElementById('pTitle').textContent = c.name;
+  document.getElementById('playerFrame').src = c.embed;
+  
+  // Marcam cardul activ
+  document.querySelectorAll('.card').forEach(el => el.classList.remove('active'));
+  event.currentTarget.classList.add('active');
+}
+
+// FUNCȚIE PENTRU FULLSCREEN FORȚAT
+function toggleFS() {
+  const elem = document.getElementById('mainPlayer'); // Mărește tot playerul, inclusiv titlul
+  if (!document.fullscreenElement) {
+    if (elem.requestFullscreen) {
+      elem.requestFullscreen();
+    } else if (elem.webkitRequestFullscreen) { /* Safari */
+      elem.webkitRequestFullscreen();
+    } else if (elem.msRequestFullscreen) { /* IE11 */
+      elem.msRequestFullscreen();
     }
-
-    function render() {
-      const grid = document.getElementById('channelGrid');
-      grid.innerHTML = '';
-      const filtered = channels.filter(c => 
-        (appState.category === 'all' || c.category === appState.category) &&
-        (c.name.toLowerCase().includes(appState.search.toLowerCase()))
-      );
-
-      filtered.forEach(c => {
-        const card = document.createElement('div');
-        card.className = `card ${appState.playing === c.name ? 'active' : ''}`;
-        card.innerHTML = `<strong>${c.name}</strong><br><small>${c.category}</small>`;
-        card.onclick = () => openStream(c);
-        grid.appendChild(card);
-      });
+  } else {
+    if (document.exitFullscreen) {
+      document.exitFullscreen();
     }
+  }
+}
 
-    document.getElementById('searchInput').oninput = (e) => { appState.search = e.target.value; render(); };
-    
-    // Initializare categorii
-    const cats = ['all', ...new Set(channels.map(c => c.category))];
-    const sel = document.getElementById('categorySelect');
-    cats.forEach(cat => {
-      const opt = document.createElement('option');
-      opt.value = cat;
-      opt.textContent = cat;
-      sel.appendChild(opt);
-    });
-    sel.onchange = (e) => { appState.category = e.target.value; render(); };
+// Dublu click pe zona playerului pentru Fullscreen
+document.getElementById('pWrap').ondblclick = toggleFS;
 
-    render();
-  </script>
+// Generare Grid
+const grid = document.getElementById('channelGrid');
+channels.forEach(c => {
+  const div = document.createElement('div');
+  div.className = 'card';
+  div.innerHTML = `<strong>${c.name}</strong>`;
+  div.onclick = () => openStream(c);
+  grid.appendChild(div);
+});
+</script>
+
 </body>
 </html>
