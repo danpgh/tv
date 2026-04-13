@@ -574,10 +574,11 @@
         const isoDate = `${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,'0')}-${String(today.getDate()).padStart(2,'0')}`;
         epgPrograms[channel.name] = finalEntries.map((entry) => ({
           start: `${isoDate}T${entry.start}:00`,
-          title: entry.title
+          title: entry.title,
+          details: 'Sursa: programtv.ro'
         }));
         epgState.mode = 'remote';
-        epgState.updatedAt = new Date().toLocaleString('ro-RO', { hour12: false });
+        epgState.updatedAt = 'programtv.ro';
         return true;
       } catch (e) {
         epgState.mode = 'unavailable';
@@ -613,7 +614,8 @@
             currentShow = current.title;
             nextShow = items[i + 1]?.title || null;
           }
-          rows.push(`<div class="guide-row"><span class="guide-time">${label}</span><span class="guide-show">${current.title}</span></div>`);
+          const details = current.details ? ` • ${current.details}` : '';
+          rows.push(`<div class="guide-row"><span class="guide-time">${label}</span><span class="guide-show">${current.title}${details}</span></div>`);
         }
         if (!currentShow) {
           currentShow = items[0]?.title || '-';
@@ -630,14 +632,14 @@
       if (epgState.mode === 'loading' || Date.now() < epgState.loadingUntil) {
         updateGuideStatus();
         els.playerMeta.textContent = 'Acum: se incarca... • Next: -';
-        els.guideList.innerHTML = '<div class="guide-row"><span class="guide-time">...</span><span class="guide-show">Actualizez datele de program pentru acest post...</span></div>';
+        els.guideList.innerHTML = '<div class="guide-row"><span class="guide-time">...</span><span class="guide-show">Actualizez datele din programtv.ro pentru acest post...</span></div>';
         return;
       }
 
       epgState.mode = 'unavailable';
       updateGuideStatus();
       els.playerMeta.textContent = 'Acum: - • Next: -';
-      els.guideList.innerHTML = '<div class="guide-row"><span class="guide-time">N/A</span><span class="guide-show">Nu sunt date de program pentru acest post.</span></div>';
+      els.guideList.innerHTML = '<div class="guide-row"><span class="guide-time">N/A</span><span class="guide-show">Nu sunt date in programtv.ro pentru acest post.</span></div>';
     }
 
     function updateGuideStatus() {
@@ -645,13 +647,13 @@
       const stamp = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
       if (epgState.mode === 'remote' && epgState.updatedAt) {
         els.guideStatus.classList.add('live');
-        els.guideStatus.textContent = `Program actualizat (${epgState.updatedAt}) • ${stamp}`;
+        els.guideStatus.textContent = `Program din sursa (${epgState.updatedAt}) • ${stamp}`;
       } else if (epgState.mode === 'loading') {
         els.guideStatus.classList.remove('live');
         els.guideStatus.textContent = `Actualizez datele... ${stamp}`;
       } else if (epgState.mode === 'unavailable') {
         els.guideStatus.classList.remove('live');
-        els.guideStatus.textContent = `Nu sunt date de program • ${stamp}`;
+        els.guideStatus.textContent = `Nu sunt date in programtv.ro • ${stamp}`;
       } else {
         els.guideStatus.classList.remove('live');
         els.guideStatus.textContent = `Astept selectia unui canal • ${stamp}`;
@@ -663,9 +665,28 @@
         epgState.mode = 'loading';
         epgState.loadingUntil = Date.now() + 2500;
         updateGuideStatus();
-        epgPrograms = {};
-        epgState.mode = 'idle';
-        epgState.updatedAt = null;
+        const raw = document.getElementById('epgData')?.textContent || '{}';
+        const parsed = JSON.parse(raw);
+        const today = new Date();
+        const todayIso = `${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,'0')}-${String(today.getDate()).padStart(2,'0')}`;
+        const channelsFromJson = parsed.channels || {};
+        epgPrograms = Object.fromEntries(
+          Object.entries(channelsFromJson).map(([channelName, entries]) => {
+            const normalizedEntries = (Array.isArray(entries) ? entries : []).map((entry) => {
+              const startText = String(entry?.start || '');
+              const hhmmssMatch = startText.match(/T(\d{2}:\d{2}(?::\d{2})?)/);
+              const timePart = hhmmssMatch ? hhmmssMatch[1] : '00:00:00';
+              const normalizedTime = timePart.length === 5 ? `${timePart}:00` : timePart;
+              return {
+                ...entry,
+                start: `${todayIso}T${normalizedTime}`
+              };
+            });
+            return [channelName, normalizedEntries];
+          })
+        );
+        epgState.mode = Object.keys(epgPrograms).length ? 'remote' : 'idle';
+        epgState.updatedAt = new Date().toLocaleString('ro-RO', { hour12: false });
       } catch (error) {
         epgPrograms = {};
         epgState.mode = 'fallback';
