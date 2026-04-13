@@ -368,6 +368,8 @@
     };
 
     let epgPrograms = {};
+    const EPG_CACHE_KEY = 'iptv-epg-cache-v1';
+    const NOW_CACHE_KEY = 'iptv-now-cache-v1';
     const programTv = { channelSlugs: null, loadingSlug: new Set(), nowMap: null };
     const channelAliasToProgramTv = {
       'a1': 'antena 1',
@@ -384,6 +386,42 @@
 
     function saveState() { localStorage.setItem('iptv-favorites', JSON.stringify([...appState.favorites])); }
     function saveOrder() { localStorage.setItem('iptv-order', JSON.stringify(appState.order)); }
+    function todayKey() {
+      const now = new Date();
+      return `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`;
+    }
+    function loadEpgCache() {
+      try {
+        const raw = localStorage.getItem(EPG_CACHE_KEY);
+        if (!raw) return {};
+        const parsed = JSON.parse(raw);
+        if (!parsed || parsed.date !== todayKey() || typeof parsed.channels !== 'object') return {};
+        return parsed.channels || {};
+      } catch {
+        return {};
+      }
+    }
+    function saveEpgCache() {
+      try {
+        localStorage.setItem(EPG_CACHE_KEY, JSON.stringify({ date: todayKey(), channels: epgPrograms }));
+      } catch {}
+    }
+    function loadNowCache() {
+      try {
+        const raw = localStorage.getItem(NOW_CACHE_KEY);
+        if (!raw) return null;
+        const parsed = JSON.parse(raw);
+        if (!parsed || parsed.date !== todayKey() || typeof parsed.map !== 'object') return null;
+        return parsed.map || null;
+      } catch {
+        return null;
+      }
+    }
+    function saveNowCache(map) {
+      try {
+        localStorage.setItem(NOW_CACHE_KEY, JSON.stringify({ date: todayKey(), map: map || {} }));
+      } catch {}
+    }
     function orderedChannels() {
       if (!appState.order.length) return channels.slice();
       const rank = new Map(appState.order.map((name, idx) => [name, idx]));
@@ -425,10 +463,22 @@
         if (!opened) els.playerMeta.textContent = `${channel.category} • popup blocat (permite popups pentru autoplay extern)`;
       }
       if (focus) focusPanel(els.playerPanel);
-      epgState.mode = 'loading';
-      epgState.loadingUntil = Date.now() + 1200;
-      updateGuide(channel, { scrollToNow: true });
-      fetchProgramTvForChannel(channel).finally(() => { if (epgState.lastChannel?.name === channel.name) updateGuide(channel, { scrollToNow: true }); });
+      if (epgPrograms[channel.name]?.length) {
+        epgState.mode = 'remote';
+        epgState.updatedAt = new Date().toLocaleString('ro-RO', { hour12: false });
+        updateGuide(channel, { scrollToNow: true });
+      } else {
+        const quickNow = getQuickNow(channel);
+        if (quickNow?.title) {
+          els.playerMeta.textContent = `Acum: ${quickNow.title} • Next: se incarca...`;
+          els.guideList.innerHTML = `<div class="guide-row now"><span class="guide-time">Acum</span><span class="guide-show">${quickNow.title}</span></div><div class="guide-row"><span class="guide-time">Next</span><span class="guide-show">Se incarca...</span></div>`;
+        }
+        epgState.mode = 'loading';
+        epgState.loadingUntil = Date.now() + 1200;
+        if (quickNow?.title) updateGuideStatus();
+        else updateGuide(channel, { scrollToNow: true });
+        fetchProgramTvForChannel(channel).finally(() => { if (epgState.lastChannel?.name === channel.name) updateGuide(channel, { scrollToNow: true }); });
+      }
       render();
     }
 
@@ -487,7 +537,19 @@
         nowMap[channelLabel.replace(/\s+/g, '')] = { title, time };
       }
       programTv.nowMap = nowMap;
+      saveNowCache(nowMap);
       return nowMap;
+    }
+
+    function getQuickNow(channel) {
+      if (!channel?.name || !programTv.nowMap) return null;
+      const normalizedName = normalizeChannelName(channel.name);
+      const normalizedNoSpaces = normalizedName.replace(/\s+/g, '');
+      const normalizedAlias = channelAliasToProgramTv[normalizedName] ? normalizeChannelName(channelAliasToProgramTv[normalizedName]) : '';
+      return programTv.nowMap[normalizedName]
+        || programTv.nowMap[normalizedNoSpaces]
+        || (normalizedAlias ? (programTv.nowMap[normalizedAlias] || programTv.nowMap[normalizedAlias.replace(/\s+/g, '')]) : null)
+        || null;
     }
 
     function parseProgramTvSchedule(markdown) {
@@ -515,9 +577,10 @@
       return items;
     }
 
-    async function fetchProgramTvForChannel(channel) {
+    async function fetchProgramTvForChannel(channel, { silent = false, force = false } = {}) {
       try {
         if (!channel?.name) return false;
+        if (!force && epgPrograms[channel.name]?.length) return true;
         if (programTv.loadingSlug.has(channel.name)) return false;
         programTv.loadingSlug.add(channel.name);
 
@@ -548,7 +611,7 @@
             break;
           }
         }
-        if (!slug) { epgState.mode = 'unavailable'; return false; }
+        if (!slug) { if (!silent) epgState.mode = 'unavailable'; return false; }
 
         const endpoints = [
           `https://r.jina.ai/https://programtv.ro/canal-tv/${slug}`,
@@ -574,7 +637,7 @@
           const nowItem = nowMap[normalizedName] || nowMap[normalizedName.replace(/\s+/g, '')] || (aliasNorm ? (nowMap[aliasNorm] || nowMap[aliasNorm.replace(/\s+/g, '')]) : null);
           if (nowItem?.title) finalEntries = [{ start: nowItem.time || '00:00', title: nowItem.title }];
         }
-        if (!finalEntries.length) { epgState.mode = 'unavailable'; return false; }
+        if (!finalEntries.length) { if (!silent) epgState.mode = 'unavailable'; return false; }
 
         const today = new Date();
         const isoDate = `${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,'0')}-${String(today.getDate()).padStart(2,'0')}`;
@@ -582,15 +645,31 @@
           start: `${isoDate}T${entry.start}:00`,
           title: entry.title
         }));
-        epgState.mode = 'remote';
-        epgState.updatedAt = new Date().toLocaleString('ro-RO', { hour12: false });
+        saveEpgCache();
+        if (!silent || epgState.lastChannel?.name === channel.name) {
+          epgState.mode = 'remote';
+          epgState.updatedAt = new Date().toLocaleString('ro-RO', { hour12: false });
+        }
         return true;
       } catch (e) {
-        epgState.mode = 'unavailable';
+        if (!silent) epgState.mode = 'unavailable';
         return false;
       } finally {
         if (channel?.name) programTv.loadingSlug.delete(channel.name);
       }
+    }
+
+    async function preloadDailyPrograms() {
+      const list = channels.slice();
+      const concurrency = 6;
+      let idx = 0;
+      const worker = async () => {
+        while (idx < list.length) {
+          const current = list[idx++];
+          await fetchProgramTvForChannel(current, { silent: true }).catch(() => false);
+        }
+      };
+      await Promise.all(Array.from({ length: Math.min(concurrency, list.length) }, worker));
     }
 
     function updateGuide(channel, { scrollToNow = false } = {}) {
@@ -676,8 +755,8 @@
         epgState.mode = 'loading';
         epgState.loadingUntil = Date.now() + 1200;
         updateGuideStatus();
-        epgPrograms = {};
-        epgState.mode = 'idle';
+        epgPrograms = loadEpgCache();
+        epgState.mode = Object.keys(epgPrograms).length ? 'remote' : 'idle';
         epgState.updatedAt = null;
       } catch (error) {
         epgPrograms = {};
@@ -806,7 +885,16 @@
     document.getElementById('appVersion').textContent = `v${APP_VERSION}`;
     console.info(`IPTV Quick Grid version ${APP_VERSION}`);
     initCategories();
+    programTv.nowMap = loadNowCache();
     loadProgramTvChannelIndex().catch(() => {});
+    loadProgramTvNowIndex().then(() => {
+      if (epgState.lastChannel && !epgPrograms[epgState.lastChannel.name]?.length) {
+        const quickNow = getQuickNow(epgState.lastChannel);
+        if (quickNow?.title) {
+          els.playerMeta.textContent = `Acum: ${quickNow.title} • Next: se incarca...`;
+        }
+      }
+    }).catch(() => {});
     render();
     loadEpgData().then(() => {
       const startupChannel = channels[0];
@@ -815,6 +903,9 @@
       } else {
         updateGuide(null);
       }
+      preloadDailyPrograms().then(() => {
+        if (epgState.lastChannel) updateGuide(epgState.lastChannel, { scrollToNow: true });
+      });
     });
 
     setInterval(() => {
