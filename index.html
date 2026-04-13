@@ -58,8 +58,10 @@
     .guide-title { margin: 0; font-size: 1.28rem; color: #c9d3f7; font-weight:700; }
     .guide-badge { font-size:1.05rem; border:1px solid #3a4a7b; background:#1a2444; color:#ccdaff; border-radius:999px; padding:4px 10px; }
     .guide-badge.live { border-color:#2f8762; background:#123527; color:#8df0be; }
-    .guide-list { max-height: 260px; overflow-y: auto; padding-right: 4px; }
+    .guide-list { max-height: 360px; overflow-y: auto; padding-right: 4px; }
     .guide-row { display: grid; grid-template-columns: 92px 1fr; gap: 10px; font-size: 1.16rem; margin-bottom: 10px; }
+    .guide-row.now .guide-time { color: #8df0be; font-weight: 700; }
+    .guide-row.now .guide-show { color: #f2fff8; }
     .guide-time { color: #9db0eb; }
     .guide-show { color: #e1e8ff; line-height:1.35; }
     .player-head { display:flex; justify-content:space-between; gap:10px; align-items:center; padding:8px 10px; }
@@ -118,7 +120,7 @@
     @media (max-width:1160px) {
       .grid { grid-template-columns:repeat(4,minmax(0,1fr)); }
       .player, .tv-guide { width: min(740px, calc(100vw - 20px)); }
-      .guide-list { max-height: 200px; }
+      .guide-list { max-height: 280px; }
       .player-wrap { min-height: 300px; max-height: 400px; }
     }
     @media (max-width:900px) {
@@ -130,7 +132,7 @@
     @media (max-width:430px) {
       .grid { grid-template-columns:1fr; }
       .player, .tv-guide { width: calc(100vw - 16px); }
-      .guide-list { max-height: 140px; }
+      .guide-list { max-height: 180px; }
       .player-wrap { min-height: 220px; max-height: 280px; }
       .wrap { padding-bottom: 20px; }
     }
@@ -425,8 +427,8 @@
       if (focus) focusPanel(els.playerPanel);
       epgState.mode = 'loading';
       epgState.loadingUntil = Date.now() + 2500;
-      updateGuide(channel);
-      fetchProgramTvForChannel(channel).finally(() => { if (epgState.lastChannel?.name === channel.name) updateGuide(channel); });
+      updateGuide(channel, { scrollToNow: true });
+      fetchProgramTvForChannel(channel).finally(() => { if (epgState.lastChannel?.name === channel.name) updateGuide(channel, { scrollToNow: true }); });
       render();
     }
 
@@ -588,7 +590,7 @@
       }
     }
 
-    function updateGuide(channel) {
+    function updateGuide(channel, { scrollToNow = false } = {}) {
       if (!channel) {
         updateGuideStatus();
         els.playerMeta.textContent = 'Acum: - • Next: -';
@@ -615,7 +617,7 @@
             nextShow = items[i + 1]?.title || null;
           }
           const details = current.details ? ` • ${current.details}` : '';
-          rows.push(`<div class="guide-row"><span class="guide-time">${label}</span><span class="guide-show">${current.title}${details}</span></div>`);
+          rows.push(`<div class="guide-row ${isNow ? 'now' : ''}"><span class="guide-time">${label}</span><span class="guide-show">${current.title}${details}</span></div>`);
         }
         if (!currentShow) {
           currentShow = items[0]?.title || '-';
@@ -625,6 +627,13 @@
 
         updateGuideStatus();
         els.guideList.innerHTML = rows.join('');
+        if (scrollToNow) {
+          const currentRow = els.guideList.querySelector('.guide-row.now');
+          if (currentRow) {
+            const targetTop = Math.max(0, currentRow.offsetTop - 8);
+            els.guideList.scrollTop = targetTop;
+          }
+        }
         return;
       }
 
@@ -665,33 +674,14 @@
         epgState.mode = 'loading';
         epgState.loadingUntil = Date.now() + 2500;
         updateGuideStatus();
-        const raw = document.getElementById('epgData')?.textContent || '{}';
-        const parsed = JSON.parse(raw);
-        const today = new Date();
-        const todayIso = `${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,'0')}-${String(today.getDate()).padStart(2,'0')}`;
-        const channelsFromJson = parsed.channels || {};
-        epgPrograms = Object.fromEntries(
-          Object.entries(channelsFromJson).map(([channelName, entries]) => {
-            const normalizedEntries = (Array.isArray(entries) ? entries : []).map((entry) => {
-              const startText = String(entry?.start || '');
-              const hhmmssMatch = startText.match(/T(\d{2}:\d{2}(?::\d{2})?)/);
-              const timePart = hhmmssMatch ? hhmmssMatch[1] : '00:00:00';
-              const normalizedTime = timePart.length === 5 ? `${timePart}:00` : timePart;
-              return {
-                ...entry,
-                start: `${todayIso}T${normalizedTime}`
-              };
-            });
-            return [channelName, normalizedEntries];
-          })
-        );
-        epgState.mode = Object.keys(epgPrograms).length ? 'remote' : 'idle';
-        epgState.updatedAt = new Date().toLocaleString('ro-RO', { hour12: false });
+        epgPrograms = {};
+        epgState.mode = 'idle';
+        epgState.updatedAt = null;
       } catch (error) {
         epgPrograms = {};
         epgState.mode = 'fallback';
       } finally {
-        if (epgState.lastChannel) updateGuide(epgState.lastChannel);
+        if (epgState.lastChannel) updateGuide(epgState.lastChannel, { scrollToNow: true });
         else updateGuideStatus();
       }
     }
