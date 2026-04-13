@@ -165,7 +165,7 @@
         </div>
       </div>
       <div class="player-wrap">
-        <iframe id="playerFrame" class="player-frame" title="IPTV Preview" allow="autoplay; fullscreen" allowfullscreen="" webkitallowfullscreen="" mozallowfullscreen="" loading="eager" src="./index_files/saved_resource.html"></iframe>
+        <iframe id="playerFrame" class="player-frame" title="IPTV Preview" allow="autoplay; fullscreen" allowfullscreen="" webkitallowfullscreen="" mozallowfullscreen="" loading="eager" src="about:blank"></iframe>
       </div>
     </section>
 
@@ -415,7 +415,7 @@
       return u.toString();
     }
 
-    function openStream(channel, { autoLaunch = false } = {}) {
+    function openStream(channel, { autoLaunch = false, focus = true } = {}) {
       appState.playing = channel.name;
       epgState.lastChannel = channel;
       els.playerTitle.textContent = channel.name;
@@ -426,7 +426,7 @@
         const opened = window.open(directUrl, '_blank', 'noopener');
         if (!opened) els.playerMeta.textContent = `${channel.category} • popup blocat (permite popups pentru autoplay extern)`;
       }
-      focusPanel(els.playerPanel);
+      if (focus) focusPanel(els.playerPanel);
       epgState.mode = 'loading';
       epgState.loadingUntil = Date.now() + 2500;
       updateGuide(channel);
@@ -777,8 +777,7 @@
     loadEpgData().then(() => {
       const startupChannel = channels[0];
       if (startupChannel) {
-        epgState.lastChannel = startupChannel;
-        updateGuide(startupChannel);
+        openStream(startupChannel, { focus: false });
       } else {
         updateGuide(null);
       }
