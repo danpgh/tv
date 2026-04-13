@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+General • Romanian general entertainment and news.<!DOCTYPE html>
 <!-- saved from url=(0028)https://danpgh.github.io/tv/ -->
 <html lang="ro"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
   
@@ -165,9 +165,9 @@
     <section class="tv-guide" id="tvGuide">
       <div class="guide-head">
         <h3 class="guide-title">Program TV</h3>
-        <span class="guide-badge live" id="guideStatus">Program din sursa (10.03.2026, 14:00:00) • 11:33</span>
+        <span class="guide-badge live" id="guideStatus">Program actualizat (10.03.2026, 14:00:00) • 11:33</span>
       </div>
-      <div class="guide-list" id="guideList"><div class="guide-row"><span class="guide-time">12:00</span><span class="guide-show">Stiri PROTV • Actualitati si breaking news</span></div><div class="guide-row"><span class="guide-time">13:00</span><span class="guide-show">La Maruta • Talk show • editie live</span></div><div class="guide-row"><span class="guide-time">15:00</span><span class="guide-show">Film: Ford v Ferrari • Drama sportiva • 152 min</span></div><div class="guide-row"><span class="guide-time">Acum</span><span class="guide-show">Romanii au talent • Entertainment • selectie momente</span></div></div>
+      <div class="guide-list" id="guideList"><div class="guide-row"><span class="guide-time">12:00</span><span class="guide-show">Stiri PROTV</span></div><div class="guide-row"><span class="guide-time">13:00</span><span class="guide-show">La Maruta</span></div><div class="guide-row"><span class="guide-time">15:00</span><span class="guide-show">Film: Ford v Ferrari</span></div><div class="guide-row"><span class="guide-time">Acum</span><span class="guide-show">Romanii au talent</span></div></div>
     </section>
 
     <section class="grid" id="channelGrid"></section>
@@ -413,7 +413,7 @@
       appState.playing = channel.name;
       epgState.lastChannel = channel;
       els.playerTitle.textContent = channel.name;
-      els.playerMeta.textContent = `${channel.category} • ${channel.description}`;
+      els.playerMeta.textContent = 'Acum: se incarca... • Next: -';
       const directUrl = buildStreamUrl(channel.embed);
       els.playerFrame.src = directUrl;
       if (autoLaunch) {
@@ -572,11 +572,10 @@
         const isoDate = `${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,'0')}-${String(today.getDate()).padStart(2,'0')}`;
         epgPrograms[channel.name] = finalEntries.map((entry) => ({
           start: `${isoDate}T${entry.start}:00`,
-          title: entry.title,
-          details: 'Sursa: programtv.ro'
+          title: entry.title
         }));
         epgState.mode = 'remote';
-        epgState.updatedAt = 'programtv.ro';
+        epgState.updatedAt = new Date().toLocaleString('ro-RO', { hour12: false });
         return true;
       } catch (e) {
         epgState.mode = 'unavailable';
@@ -589,6 +588,7 @@
     function updateGuide(channel) {
       if (!channel) {
         updateGuideStatus();
+        els.playerMeta.textContent = 'Acum: - • Next: -';
         els.guideList.innerHTML = '<div class="guide-row"><span class="guide-time">Acum</span><span class="guide-show">Selecteaza un canal</span></div>';
         return;
       }
@@ -598,6 +598,8 @@
         const now = new Date();
         const hhmm = (d) => `${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
         const rows = [];
+        let currentShow = null;
+        let nextShow = null;
 
         for (let i = 0; i < items.length; i++) {
           const current = items[i];
@@ -605,9 +607,17 @@
           const next = items[i + 1] ? new Date(items[i + 1].start) : null;
           const isNow = start <= now && (!next || now < next);
           const label = isNow ? 'Acum' : hhmm(start);
-          const details = current.details ? ` • ${current.details}` : '';
-          rows.push(`<div class="guide-row"><span class="guide-time">${label}</span><span class="guide-show">${current.title}${details}</span></div>`);
+          if (isNow) {
+            currentShow = current.title;
+            nextShow = items[i + 1]?.title || null;
+          }
+          rows.push(`<div class="guide-row"><span class="guide-time">${label}</span><span class="guide-show">${current.title}</span></div>`);
         }
+        if (!currentShow) {
+          currentShow = items[0]?.title || '-';
+          nextShow = items[1]?.title || null;
+        }
+        els.playerMeta.textContent = `Acum: ${currentShow || '-'} • Next: ${nextShow || '-'}`;
 
         updateGuideStatus();
         els.guideList.innerHTML = rows.join('');
@@ -617,13 +627,15 @@
 
       if (epgState.mode === 'loading' || Date.now() < epgState.loadingUntil) {
         updateGuideStatus();
-        els.guideList.innerHTML = '<div class="guide-row"><span class="guide-time">...</span><span class="guide-show">Actualizez datele din programtv.ro pentru acest post...</span></div>';
+        els.playerMeta.textContent = 'Acum: se incarca... • Next: -';
+        els.guideList.innerHTML = '<div class="guide-row"><span class="guide-time">...</span><span class="guide-show">Actualizez datele de program pentru acest post...</span></div>';
         return;
       }
 
       epgState.mode = 'unavailable';
       updateGuideStatus();
-      els.guideList.innerHTML = '<div class="guide-row"><span class="guide-time">N/A</span><span class="guide-show">Nu sunt date in programtv.ro pentru acest post.</span></div>';
+      els.playerMeta.textContent = 'Acum: - • Next: -';
+      els.guideList.innerHTML = '<div class="guide-row"><span class="guide-time">N/A</span><span class="guide-show">Nu sunt date de program pentru acest post.</span></div>';
     }
 
     function updateGuideStatus() {
@@ -631,13 +643,13 @@
       const stamp = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
       if (epgState.mode === 'remote' && epgState.updatedAt) {
         els.guideStatus.classList.add('live');
-        els.guideStatus.textContent = `Program din sursa (${epgState.updatedAt}) • ${stamp}`;
+        els.guideStatus.textContent = `Program actualizat (${epgState.updatedAt}) • ${stamp}`;
       } else if (epgState.mode === 'loading') {
         els.guideStatus.classList.remove('live');
         els.guideStatus.textContent = `Actualizez datele... ${stamp}`;
       } else if (epgState.mode === 'unavailable') {
         els.guideStatus.classList.remove('live');
-        els.guideStatus.textContent = `Nu sunt date in programtv.ro • ${stamp}`;
+        els.guideStatus.textContent = `Nu sunt date de program • ${stamp}`;
       } else {
         els.guideStatus.classList.remove('live');
         els.guideStatus.textContent = `Astept selectia unui canal • ${stamp}`;
