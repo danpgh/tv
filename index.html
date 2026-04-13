@@ -84,42 +84,6 @@
       border:0;
       background:#000;
     }
-    .player:fullscreen,
-    .player:-webkit-full-screen {
-      width:100vw !important;
-      max-width:none !important;
-      height:100vh;
-      margin:0;
-      border-radius:0;
-      position:fixed;
-      inset:0;
-      z-index:9999;
-      display:flex;
-      flex-direction:column;
-      background:#000;
-    }
-    .player:fullscreen .player-head,
-    .player:-webkit-full-screen .player-head {
-      display:flex;
-      border-bottom:1px solid #1e2742;
-      background:rgba(9,11,18,.96);
-      flex:0 0 auto;
-    }
-    .player:fullscreen .player-wrap,
-    .player:-webkit-full-screen .player-wrap {
-      flex:1;
-      width:100%;
-      max-height:none;
-      aspect-ratio:auto;
-      padding-right:0;
-      border-top:0;
-    }
-    .player:fullscreen .player-frame,
-    .player:-webkit-full-screen .player-frame {
-      width:100%;
-      margin-left:0;
-      height:100%;
-    }
     .grid { display:grid; grid-template-columns:repeat(5,minmax(0,1fr)); gap:10px; }
     .card { background:var(--panel); border:1px solid var(--border); border-radius:12px; padding:8px; display:grid; gap:6px; min-height:96px; cursor:pointer; }
     .card.dragging { opacity:.5; border-style:dashed; }
@@ -182,7 +146,6 @@
       <div class="quick-nav">
         <button id="goToStream" type="button">▶ Stream</button>
         <button id="goToProgram" type="button">📺 Program</button>
-        <button id="goFullscreen" type="button">⛶ Fullscreen</button>
       </div>
       <div class="controls">
         <input id="searchInput" placeholder="Cauta post...">
@@ -199,6 +162,7 @@
           <div class="player-meta" id="playerMeta">Preview live</div>
           <button id="prevFavBtn" class="player-ch" type="button">CH-</button>
           <button id="nextFavBtn" class="player-ch" type="button">CH+</button>
+          <button id="playerFullscreenBtn" class="player-ch" type="button">⛶ Full</button>
         </div>
       </div>
       <div class="player-wrap">
@@ -389,8 +353,8 @@
       showFav: document.getElementById('showFavorites'),
       goToStream: document.getElementById('goToStream'),
       goToProgram: document.getElementById('goToProgram'),
-      goFullscreen: document.getElementById('goFullscreen'),
       playerFrame: document.getElementById('playerFrame'),
+      playerFullscreenBtn: document.getElementById('playerFullscreenBtn'),
       prevFavBtn: document.getElementById('prevFavBtn'),
       nextFavBtn: document.getElementById('nextFavBtn'),
       playerTitle: document.getElementById('playerTitle'),
@@ -729,13 +693,13 @@
     }
 
     function isPlayerFullscreen() {
-      return document.fullscreenElement === els.playerPanel || document.webkitFullscreenElement === els.playerPanel;
+      return document.fullscreenElement === els.playerFrame || document.webkitFullscreenElement === els.playerFrame;
     }
 
     async function togglePlayerFullscreen() {
       try {
         if (!isPlayerFullscreen()) {
-          await (els.playerPanel.requestFullscreen?.() || els.playerPanel.webkitRequestFullscreen?.());
+          await (els.playerFrame.requestFullscreen?.() || els.playerFrame.webkitRequestFullscreen?.());
         } else {
           await (document.exitFullscreen?.() || document.webkitExitFullscreen?.());
         }
@@ -818,7 +782,7 @@
     els.showFav.addEventListener('click', () => { appState.favoritesOnly = !appState.favoritesOnly; render(); });
     els.goToStream.addEventListener('click', () => focusPanel(els.playerPanel));
     els.goToProgram.addEventListener('click', () => focusPanel(els.tvGuide));
-    els.goFullscreen.addEventListener('click', togglePlayerFullscreen);
+    els.playerFullscreenBtn.addEventListener('click', togglePlayerFullscreen);
     els.prevFavBtn.addEventListener('click', () => navigateFavorite(-1));
     els.nextFavBtn.addEventListener('click', () => navigateFavorite(1));
     els.playerWrap.addEventListener('dblclick', togglePlayerFullscreen);
