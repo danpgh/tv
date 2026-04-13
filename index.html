@@ -19,7 +19,7 @@
     h1 { margin:0 0 6px; font-size:1.15rem; }
     .hint { margin:0; color:var(--muted); font-size:.9rem; }
     .top { display:grid; gap:10px; margin-bottom:12px; }
-    .controls { display:grid; grid-template-columns:1fr 220px auto; gap:8px; }
+    .controls { display:grid; grid-template-columns:auto 1fr 220px auto; gap:8px; }
     input,select { width:100%; border:1px solid var(--border); border-radius:10px; background:#0f1322; color:var(--text); padding:10px 12px; outline:none; }
     button { border:1px solid var(--border); border-radius:0 !important; background:#131a2d; color:var(--text); padding:7px 9px; font-size:.82rem; cursor:pointer; min-height:38px; }
     button.active { border-color:var(--accent); color:#dce4ff; }
@@ -139,20 +139,12 @@
 <body>
   <div class="wrap">
     <section class="panel top">
-      <div>
-        <h1>IPTV Quick Grid</h1>
-        <p class="hint">Canale sus, player incadrat la mijloc, apoi butoane/canale dedesubt. <span id="appVersion">v2026-04-01.8</span></p>
-      </div>
-      <div class="quick-nav">
-        <button id="goToStream" type="button">▶ Stream</button>
-        <button id="goToProgram" type="button">📺 Program</button>
-      </div>
       <div class="controls">
+        <button id="goToProgram" type="button">📺 Program</button>
         <input id="searchInput" placeholder="Cauta post...">
         <select id="categorySelect"><option value="all">Toate categoriile</option><option value="Documentary">Documentary</option><option value="Entertainment">Entertainment</option><option value="General">General</option><option value="Kids">Kids</option><option value="Lifestyle">Lifestyle</option><option value="Movies">Movies</option><option value="Music">Music</option><option value="News">News</option><option value="Sports">Sports</option></select>
         <button id="showFavorites">★ Doar favorite</button>
       </div>
-      <div class="notice">Important: pentru fullscreen foloseste butonul original din player-ul video (colt dreapta-jos).</div>
     </section>
 
     <section class="player" id="playerPanel">
@@ -179,6 +171,7 @@
     </section>
 
     <section class="grid" id="channelGrid"></section>
+    <p class="hint"><span id="appVersion">v2026-04-01.8</span></p>
   </div>
 
   <script id="epgData" type="application/json">
@@ -351,7 +344,6 @@
       search: document.getElementById('searchInput'),
       category: document.getElementById('categorySelect'),
       showFav: document.getElementById('showFavorites'),
-      goToStream: document.getElementById('goToStream'),
       goToProgram: document.getElementById('goToProgram'),
       playerFrame: document.getElementById('playerFrame'),
       playerFullscreenBtn: document.getElementById('playerFullscreenBtn'),
@@ -780,7 +772,6 @@
     els.search.addEventListener('input', (e) => { appState.search = e.target.value.trim(); render(); });
     els.category.addEventListener('change', (e) => { appState.category = e.target.value; render(); });
     els.showFav.addEventListener('click', () => { appState.favoritesOnly = !appState.favoritesOnly; render(); });
-    els.goToStream.addEventListener('click', () => focusPanel(els.playerPanel));
     els.goToProgram.addEventListener('click', () => focusPanel(els.tvGuide));
     els.playerFullscreenBtn.addEventListener('click', togglePlayerFullscreen);
     els.prevFavBtn.addEventListener('click', () => navigateFavorite(-1));
