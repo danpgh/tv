@@ -182,6 +182,7 @@
       <div class="quick-nav">
         <button id="goToStream" type="button">▶ Stream</button>
         <button id="goToProgram" type="button">📺 Program</button>
+        <button id="goFullscreen" type="button">⛶ Fullscreen</button>
       </div>
       <div class="controls">
         <input id="searchInput" placeholder="Cauta post...">
@@ -388,6 +389,7 @@
       showFav: document.getElementById('showFavorites'),
       goToStream: document.getElementById('goToStream'),
       goToProgram: document.getElementById('goToProgram'),
+      goFullscreen: document.getElementById('goFullscreen'),
       playerFrame: document.getElementById('playerFrame'),
       prevFavBtn: document.getElementById('prevFavBtn'),
       nextFavBtn: document.getElementById('nextFavBtn'),
@@ -816,14 +818,11 @@
     els.showFav.addEventListener('click', () => { appState.favoritesOnly = !appState.favoritesOnly; render(); });
     els.goToStream.addEventListener('click', () => focusPanel(els.playerPanel));
     els.goToProgram.addEventListener('click', () => focusPanel(els.tvGuide));
+    els.goFullscreen.addEventListener('click', togglePlayerFullscreen);
     els.prevFavBtn.addEventListener('click', () => navigateFavorite(-1));
     els.nextFavBtn.addEventListener('click', () => navigateFavorite(1));
     els.playerWrap.addEventListener('dblclick', togglePlayerFullscreen);
     els.playerFrame.addEventListener('dblclick', togglePlayerFullscreen);
-    document.addEventListener('keydown', (e) => {
-      if (e.key === 'ArrowUp') { e.preventDefault(); navigateFavorite(-1); }
-      if (e.key === 'ArrowDown') { e.preventDefault(); navigateFavorite(1); }
-    });
     document.getElementById('appVersion').textContent = `v${APP_VERSION}`;
     console.info(`IPTV Quick Grid version ${APP_VERSION}`);
     initCategories();
