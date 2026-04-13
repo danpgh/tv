@@ -426,7 +426,7 @@
       }
       if (focus) focusPanel(els.playerPanel);
       epgState.mode = 'loading';
-      epgState.loadingUntil = Date.now() + 2500;
+      epgState.loadingUntil = Date.now() + 1200;
       updateGuide(channel, { scrollToNow: true });
       fetchProgramTvForChannel(channel).finally(() => { if (epgState.lastChannel?.name === channel.name) updateGuide(channel, { scrollToNow: true }); });
       render();
@@ -451,7 +451,7 @@
 
     async function loadProgramTvChannelIndex() {
       if (programTv.channelSlugs) return programTv.channelSlugs;
-      const response = await fetch('https://r.jina.ai/http://programtv.ro/canale-tv', { cache: 'no-store' });
+      const response = await fetch('https://r.jina.ai/https://programtv.ro/canale-tv', { cache: 'no-store' });
       if (!response.ok) throw new Error('Nu s-a putut incarca indexul de canale');
       const text = await response.text();
       const slugMap = {};
@@ -472,7 +472,7 @@
 
     async function loadProgramTvNowIndex() {
       if (programTv.nowMap) return programTv.nowMap;
-      const response = await fetch('https://r.jina.ai/http://programtv.ro/canal-tv/hbo-2', { cache: 'no-store' });
+      const response = await fetch('https://r.jina.ai/https://programtv.ro/canal-tv/hbo-2', { cache: 'no-store' });
       if (!response.ok) throw new Error('Nu s-a putut incarca lista Acum la TV');
       const text = await response.text();
       const nowMap = {};
@@ -551,12 +551,16 @@
         if (!slug) { epgState.mode = 'unavailable'; return false; }
 
         const endpoints = [
-          `https://r.jina.ai/http://programtv.ro/canal-tv/${slug}`,
-          `https://r.jina.ai/http://programtv.ro/canal-tv/${slug}/azi`
+          `https://r.jina.ai/https://programtv.ro/canal-tv/${slug}`,
+          `https://r.jina.ai/https://programtv.ro/canal-tv/${slug}/azi`
         ];
+        const responses = await Promise.allSettled(
+          endpoints.map((endpoint) => fetch(endpoint, { cache: 'no-store' }))
+        );
         let finalEntries = [];
-        for (const endpoint of endpoints) {
-          const response = await fetch(endpoint, { cache: 'no-store' });
+        for (const item of responses) {
+          if (item.status !== 'fulfilled') continue;
+          const response = item.value;
           if (!response.ok) continue;
           const text = await response.text();
           const parsed = parseProgramTvSchedule(text);
@@ -576,11 +580,10 @@
         const isoDate = `${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,'0')}-${String(today.getDate()).padStart(2,'0')}`;
         epgPrograms[channel.name] = finalEntries.map((entry) => ({
           start: `${isoDate}T${entry.start}:00`,
-          title: entry.title,
-          details: 'Sursa: programtv.ro'
+          title: entry.title
         }));
         epgState.mode = 'remote';
-        epgState.updatedAt = 'programtv.ro';
+        epgState.updatedAt = new Date().toLocaleString('ro-RO', { hour12: false });
         return true;
       } catch (e) {
         epgState.mode = 'unavailable';
@@ -616,8 +619,7 @@
             currentShow = current.title;
             nextShow = items[i + 1]?.title || null;
           }
-          const details = current.details ? ` • ${current.details}` : '';
-          rows.push(`<div class="guide-row ${isNow ? 'now' : ''}"><span class="guide-time">${label}</span><span class="guide-show">${current.title}${details}</span></div>`);
+          rows.push(`<div class="guide-row ${isNow ? 'now' : ''}"><span class="guide-time">${label}</span><span class="guide-show">${current.title}</span></div>`);
         }
         if (!currentShow) {
           currentShow = items[0]?.title || '-';
@@ -641,14 +643,14 @@
       if (epgState.mode === 'loading' || Date.now() < epgState.loadingUntil) {
         updateGuideStatus();
         els.playerMeta.textContent = 'Acum: se incarca... • Next: -';
-        els.guideList.innerHTML = '<div class="guide-row"><span class="guide-time">...</span><span class="guide-show">Actualizez datele din programtv.ro pentru acest post...</span></div>';
+        els.guideList.innerHTML = '<div class="guide-row"><span class="guide-time">...</span><span class="guide-show">Actualizez programul pentru acest post...</span></div>';
         return;
       }
 
       epgState.mode = 'unavailable';
       updateGuideStatus();
       els.playerMeta.textContent = 'Acum: - • Next: -';
-      els.guideList.innerHTML = '<div class="guide-row"><span class="guide-time">N/A</span><span class="guide-show">Nu sunt date in programtv.ro pentru acest post.</span></div>';
+      els.guideList.innerHTML = '<div class="guide-row"><span class="guide-time">N/A</span><span class="guide-show">Nu sunt date de program pentru acest post.</span></div>';
     }
 
     function updateGuideStatus() {
@@ -656,13 +658,13 @@
       const stamp = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
       if (epgState.mode === 'remote' && epgState.updatedAt) {
         els.guideStatus.classList.add('live');
-        els.guideStatus.textContent = `Program din sursa (${epgState.updatedAt}) • ${stamp}`;
+        els.guideStatus.textContent = `Program actualizat (${epgState.updatedAt}) • ${stamp}`;
       } else if (epgState.mode === 'loading') {
         els.guideStatus.classList.remove('live');
         els.guideStatus.textContent = `Actualizez datele... ${stamp}`;
       } else if (epgState.mode === 'unavailable') {
         els.guideStatus.classList.remove('live');
-        els.guideStatus.textContent = `Nu sunt date in programtv.ro • ${stamp}`;
+        els.guideStatus.textContent = `Nu sunt date de program • ${stamp}`;
       } else {
         els.guideStatus.classList.remove('live');
         els.guideStatus.textContent = `Astept selectia unui canal • ${stamp}`;
@@ -672,7 +674,7 @@
     async function loadEpgData() {
       try {
         epgState.mode = 'loading';
-        epgState.loadingUntil = Date.now() + 2500;
+        epgState.loadingUntil = Date.now() + 1200;
         updateGuideStatus();
         epgPrograms = {};
         epgState.mode = 'idle';
@@ -804,6 +806,7 @@
     document.getElementById('appVersion').textContent = `v${APP_VERSION}`;
     console.info(`IPTV Quick Grid version ${APP_VERSION}`);
     initCategories();
+    loadProgramTvChannelIndex().catch(() => {});
     render();
     loadEpgData().then(() => {
       const startupChannel = channels[0];
