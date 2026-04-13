@@ -167,7 +167,7 @@
         <h3 class="guide-title">Program TV</h3>
         <span class="guide-badge live" id="guideStatus">Program actualizat (10.03.2026, 14:00:00) • 11:33</span>
       </div>
-      <div class="guide-list" id="guideList"><div class="guide-row"><span class="guide-time">12:00</span><span class="guide-show">Stiri PROTV</span></div><div class="guide-row"><span class="guide-time">13:00</span><span class="guide-show">La Maruta</span></div><div class="guide-row"><span class="guide-time">15:00</span><span class="guide-show">Film: Ford v Ferrari</span></div><div class="guide-row"><span class="guide-time">Acum</span><span class="guide-show">Romanii au talent</span></div></div>
+      <div class="guide-list" id="guideList"><div class="guide-row"><span class="guide-time">Acum</span><span class="guide-show">Se incarca programul...</span></div></div>
     </section>
 
     <section class="grid" id="channelGrid"></section>
@@ -411,18 +411,6 @@
       return u.toString();
     }
 
-    function ensureLocalFallbackProgram(channel) {
-      if (!channel?.name) return;
-      if (epgPrograms[channel.name]?.length) return;
-      const now = new Date();
-      const plusOneHour = new Date(now.getTime() + 60 * 60 * 1000);
-      const iso = (d) => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}T${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}:00`;
-      epgPrograms[channel.name] = [
-        { start: iso(now), title: `${channel.name} - Program in curs` },
-        { start: iso(plusOneHour), title: `${channel.name} - Urmeaza` }
-      ];
-    }
-
     function openStream(channel, { autoLaunch = false, focus = true } = {}) {
       appState.playing = channel.name;
       epgState.lastChannel = channel;
@@ -437,7 +425,6 @@
       if (focus) focusPanel(els.playerPanel);
       epgState.mode = 'loading';
       epgState.loadingUntil = Date.now() + 2500;
-      ensureLocalFallbackProgram(channel);
       updateGuide(channel);
       fetchProgramTvForChannel(channel).finally(() => { if (epgState.lastChannel?.name === channel.name) updateGuide(channel); });
       render();
@@ -676,11 +663,9 @@
         epgState.mode = 'loading';
         epgState.loadingUntil = Date.now() + 2500;
         updateGuideStatus();
-        const raw = document.getElementById('epgData')?.textContent || '{}';
-        const parsed = JSON.parse(raw);
-        epgPrograms = parsed.channels || {};
-        epgState.mode = Object.keys(epgPrograms).length ? 'remote' : 'idle';
-        epgState.updatedAt = parsed.updatedAt ? new Date(parsed.updatedAt).toLocaleString('ro-RO', { hour12: false }) : null;
+        epgPrograms = {};
+        epgState.mode = 'idle';
+        epgState.updatedAt = null;
       } catch (error) {
         epgPrograms = {};
         epgState.mode = 'fallback';
