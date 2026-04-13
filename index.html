@@ -78,13 +78,6 @@
       padding-right: 26px;
     }
     .player-frame { width:calc(100% - 26px); height:100%; border:0; background:#000; }
-    .player-dbl-layer {
-      position:absolute;
-      inset:0 26px 0 0;
-      z-index:3;
-      background:transparent;
-      cursor:zoom-in;
-    }
     .player:fullscreen,
     .player:-webkit-full-screen {
       width:100vw !important;
@@ -200,11 +193,9 @@
           <div class="player-meta" id="playerMeta">Preview live</div>
           <button id="prevFavBtn" class="player-ch" type="button">CH-</button>
           <button id="nextFavBtn" class="player-ch" type="button">CH+</button>
-          <button id="fullscreenBtn" class="player-ch" type="button" title="Fullscreen">⛶</button>
         </div>
       </div>
       <div class="player-wrap">
-        <div id="playerDblLayer" class="player-dbl-layer" title="Dublu click pentru fullscreen"></div>
         <iframe id="playerFrame" class="player-frame" title="IPTV Preview" allow="autoplay; fullscreen" allowfullscreen="" webkitallowfullscreen="" mozallowfullscreen="" loading="eager" src="./index_files/saved_resource.html"></iframe>
       </div>
     </section>
@@ -395,15 +386,13 @@
       playerFrame: document.getElementById('playerFrame'),
       prevFavBtn: document.getElementById('prevFavBtn'),
       nextFavBtn: document.getElementById('nextFavBtn'),
-      fullscreenBtn: document.getElementById('fullscreenBtn'),
       playerTitle: document.getElementById('playerTitle'),
       playerMeta: document.getElementById('playerMeta'),
       guideList: document.getElementById('guideList'),
       guideStatus: document.getElementById('guideStatus'),
       playerPanel: document.getElementById('playerPanel'),
       tvGuide: document.getElementById('tvGuide'),
-      playerWrap: document.querySelector('.player-wrap'),
-      playerDblLayer: document.getElementById('playerDblLayer')
+      playerWrap: document.querySelector('.player-wrap')
     };
 
     const epgState = {
@@ -824,9 +813,7 @@
     els.goToProgram.addEventListener('click', () => focusPanel(els.tvGuide));
     els.prevFavBtn.addEventListener('click', () => navigateFavorite(-1));
     els.nextFavBtn.addEventListener('click', () => navigateFavorite(1));
-    els.fullscreenBtn.addEventListener('click', togglePlayerFullscreen);
     els.playerWrap.addEventListener('dblclick', togglePlayerFullscreen);
-    els.playerDblLayer.addEventListener('dblclick', togglePlayerFullscreen);
     document.addEventListener('keydown', (e) => {
       if (e.key === 'ArrowUp') { e.preventDefault(); navigateFavorite(-1); }
       if (e.key === 'ArrowDown') { e.preventDefault(); navigateFavorite(1); }
